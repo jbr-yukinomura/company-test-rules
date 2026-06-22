@@ -227,7 +227,7 @@
         // 正しいスコアをセットし直してGASに送信
         logData.score = `${score} / ${loadedQuestions.length}`;
 
-        // 新しいGitHubのロボット宛ての通信
+        // GitHubのロボット宛ての通信
         fetch('https://api.github.com/repos/jbr-yukinomura/company-test-rules/dispatches', {
             method: 'POST',
             headers: {
@@ -242,7 +242,7 @@
                     company: logData.company,
                     name: logData.name,
                     score: logData.score,
-                    results: logData.results.join(',') // 〇,×,〇... とカンマで繋ぐ
+                    results: logData.results // ←すでに文字になっているので、.join(',')を消してスッキリさせました！
                 }
             })
         }).catch(err => console.error('GitHubログ送信エラー:', err));
