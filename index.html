@@ -313,12 +313,14 @@
             }
         }
 
+        // 🛠️ 【ここを修正！】送信するデータを「finalResultsArray」に変更します！
         const logPayload = {
             timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
             company: document.getElementById('companyName').value.trim(),
             name: document.getElementById('userName').value.trim(),
             score: `${score}/${currentQuizQuestions.length}`,
-            results: finalResultsArray.join(',') // 綺麗にQ1〜Q54が並んだログが保存されます！
+            // ⭕️ resultsArray ではなく、綺麗に並び替えた「finalResultsArray」を送信します！
+            results: finalResultsArray.join(',') 
         };
 
         const secureToken = TOKEN_PART1.trim() + TOKEN_PART2.trim();
