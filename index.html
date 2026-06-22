@@ -5,16 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JBR加入前スタッフ用理解度テスト（作業編）</title>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; line-height: 1.6; }
         .container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; border-bottom: 2px solid #3498db; padding-bottom: 10px; font-size: 20px; }
+        
+        /* 案内文章用スタイル */
+        .info-section { background: #fafafa; border: 1px solid #e0e0e0; padding: 20px; border-radius: 6px; margin-bottom: 25px; font-size: 14px; }
+        .info-section h3 { margin-top: 0; color: #2c3e50; border-left: 4px solid #3498db; padding-left: 8px; }
+        .required-tag { color: #e74c3c; margin-left: 4px; font-weight: bold; }
+        
+        /* 入力フォーム用スタイル */
+        .input-group { margin-bottom: 20px; background: white; border: 1px solid #e0e0e0; padding: 20px; border-radius: 6px; }
+        .input-group label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 14px; }
+        .input-group p { margin: 0 0 10px 0; font-size: 12px; color: #666; }
+        .input-group input, .input-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        
+        /* クイズ用スタイル */
         .quiz-box { margin-bottom: 25px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 6px; background-color: #fafafa; }
-        .quiz-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #2c3e50; line-height: 1.5; }
-        .choice-label { display: block; padding: 10px; margin: 5px 0; background: white; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; transition: 0.2s; font-size: 14px; }
+        .quiz-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #2c3e50; line-height: 1.5; text-align: left; }
+        
+        /* 💡 選択肢を綺麗に左詰めにするスタイル */
+        .choice-label { display: block; padding: 10px; margin: 5px 0; background: white; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; transition: 0.2s; font-size: 14px; text-align: left; }
         .choice-label:hover { background: #ebf5fb; border-color: #3498db; }
-        .choice-label input { margin-right: 10px; }
-        .btn-submit { display: block; width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 30px; }
-        .btn-submit:hover { background: #2980b9; }
+        .choice-label input { margin-right: 10px; vertical-align: middle; }
+        
+        /* ボタン用スタイル */
+        .btn-action { display: block; width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 20px; }
+        .btn-action:hover { background: #2980b9; }
         .loading { text-align: center; font-size: 16px; color: #7f8c8d; padding: 40px 0; }
         
         /* 結果・解説画面用スタイル */
@@ -26,7 +43,7 @@
         .badge-ok { background: #2ecc71; }
         .badge-ng { background: #e74c3c; }
         .commentary-box { margin-top: 15px; padding: 12px; background: #fffde7; border-left: 4px solid #f1c40f; font-size: 13px; line-height: 1.5; }
-        .your-answer { font-size: 13px; margin-bottom: 5px; }
+        .your-answer { font-size: 13px; margin-bottom: 5px; text-align: left; }
     </style>
 </head>
 <body>
@@ -34,70 +51,141 @@
 <div class="container">
     <h1 id="mainTitle">JBR加入前スタッフ用理解度テスト（作業編）</h1>
     
-    <form id="quizForm">
-        <div id="quizContainer" class="loading">問題を読み込んでいます...</div>
-        <button type="submit" id="submitBtn" class="btn-submit" style="display:none;">回答を終了して採点する</button>
-    </form>
+    <div id="startScreen">
+        <div class="info-section">
+            <p><strong>【受験者への案内】</strong></p>
+            <p>１．本テストは、JBRのビジネスを円滑に進めていただく上で、大変重要なルールや知識を網羅しております。恐れ入りますが、あらかじめ各種マニュアルをご一読いただいた上で、ご受験をお願いいたします。</p>
+            <p>２．本テストで16点（満点）を獲得いただくことが、皆様とJBRが信頼できるビジネスパートナーとして歩みを共にするための基準となっております。皆様のご理解とご協力を心よりお願い申し上げます。<br>
+            なお、16点（満点）を獲得いただくまで、何度でも受験が可能です。</p>
+            <p>※問題数は全16問から構成され、<u>所要時間は概ね10分程度</u>の内容となっております。</p>
+            <p>（※ご注意）<br>
+            本テストは、再受験のたびに問題や選択肢がランダムに入れ替わります。</p>
+        </div>
+
+        <div class="input-group">
+            <p>個人情報についてお伺いいたします。<br>あなたの会社名ならびにお名前をご記入ください<br>なお、JBRに新規で会社を登録する場合には作業される方全員の受講をお願いいたします。</p>
+            
+            <div style="margin-top: 15px;">
+                <label for="companyName">会社名<span class="required-tag">*</span></label>
+                <input type="text" id="companyName" placeholder="回答を入力" required>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                <label for="userName">氏名<span class="required-tag">*</span></label>
+                <p>姓と名の間に全角スペースを入れてください。</p>
+                <input type="text" id="userName" placeholder="回答を入力" required>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>【個人情報の取り扱いについて】</label>
+            <p>ご入力いただいた個人情報（所属・氏名など）および本テストの受験結果は、以下の目的のためにのみ利用いたします。</p>
+            <p>1. 受験者の識別、および本人確認のため<br>
+            2. マニュアル理解度の習得状況の把握、および社内研修・教育への活用のため<br>
+            3. テストの運営、管理、および結果のご連絡のため</p>
+            <p>取得した個人情報は、当社のプライバシーポリシーおよび情報セキュリティ方針にのっとり、適切かつ厳重に管理いたします。法令に基づく場合を除き、事前の同意なく第三者に提供することはありません。</p>
+            <p style="color: #3498db; text-decoration: underline; cursor: pointer;">プライバシーポリシー / 情報セキュリティ方針</p>
+            
+            <div style="margin-top: 20px;">
+                <label for="privacyAgree">個人情報の取り扱いについて<span class="required-tag">*</span></label>
+                <p>上記内容をご確認いただき、よろしければ以下のプルダウンより「同意する」を選択してテストへお進みください。</p>
+                <select id="privacyAgree" required>
+                    <option value="" disabled selected>選択</option>
+                    <option value="同意する">同意する</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="button" class="btn-action" onclick="startQuiz()">テストを開始する</button>
+    </div>
+
+    <div id="quizScreen" style="display: none;">
+        <form id="quizForm">
+            <div id="quizContainer" class="loading">問題を読み込んでいます...</div>
+            <button type="submit" id="submitBtn" class="btn-action" style="display:none;">回答を終了して採点する</button>
+        </form>
+    </div>
 </div>
 
 <script>
     let loadedQuestions = [];
 
-    // 🌐 GASが吐き出した最新の問題データを読み込む
+    // 🌐 GASが吐き出した最新の問題データを裏で読み込んでおく
     fetch('./questions.json?t=' + new Date().getTime())
         .then(response => response.json())
         .then(questions => {
             loadedQuestions = questions;
-            const container = document.getElementById('quizContainer');
-            container.innerHTML = ''; 
-            
-            questions.forEach((q, index) => {
-                const quizBox = document.createElement('div');
-                quizBox.className = 'quiz-box';
-                quizBox.id = `box_${index}`;
-                
-                const titleEl = document.createElement('div');
-                titleEl.className = 'quiz-title';
-                titleEl.innerText = `${q.id}. ${q.title}`;
-                quizBox.appendChild(titleEl);
-                
-                q.choices.forEach(choice => {
-                    const label = document.createElement('label');
-                    label.className = 'choice-label';
-                    
-                    const radio = document.createElement('input');
-                    radio.type = 'radio';
-                    radio.name = `question_${index}`;
-                    radio.value = choice;
-                    radio.required = true;
-                    
-                    label.appendChild(radio);
-                    label.appendChild(document.createTextNode(choice));
-                    quizBox.appendChild(label);
-                });
-                
-                container.appendChild(quizBox);
-            });
-            
-            document.getElementById('submitBtn').style.display = 'block';
         })
         .catch(err => {
-            document.getElementById('quizContainer').innerText = '問題の読み込みに失敗しました。GASで一度問題を出力したかご確認ください。';
-            console.error(err);
+            console.error('問題の読み込みに失敗しました。', err);
         });
 
-    // 🚀 採点ボタンが押された時の処理（その場で答え合わせ画面を作る）
+    // 🚀 「テストを開始する」ボタンが押された時の処理
+    function startQuiz() {
+        const company = document.getElementById('companyName').value.trim();
+        const name = document.getElementById('userName').value.trim();
+        const agree = document.getElementById('privacyAgree').value;
+
+        if (!company || !name || !agree) {
+            alert('必須項目(*)をすべて入力し、個人情報の取り扱いに「同意する」を選択してください。');
+            return;
+        }
+
+        if (loadedQuestions.length === 0) {
+            alert('問題データを読み込み中です。恐れ入りますが数秒待ってから再度お試しください。');
+            return;
+        }
+
+        // 画面の切り替え
+        document.getElementById('startScreen').style.display = 'none';
+        document.getElementById('quizScreen').style.display = 'block';
+
+        // クイズ画面の生成
+        const container = document.getElementById('quizContainer');
+        container.innerHTML = ''; 
+        
+        loadedQuestions.forEach((q, index) => {
+            const quizBox = document.createElement('div');
+            quizBox.className = 'quiz-box';
+            quizBox.id = `box_${index}`;
+            
+            const titleEl = document.createElement('div');
+            titleEl.className = 'quiz-title';
+            titleEl.innerText = `${q.id}. ${q.title}`;
+            quizBox.appendChild(titleEl);
+            
+            q.choices.forEach(choice => {
+                const label = document.createElement('label');
+                label.className = 'choice-label';
+                
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = `question_${index}`;
+                radio.value = choice;
+                radio.required = true;
+                
+                label.appendChild(radio);
+                label.appendChild(document.createTextNode(choice));
+                quizBox.appendChild(label);
+            });
+            
+            container.appendChild(quizBox);
+        });
+        
+        document.getElementById('submitBtn').style.display = 'block';
+        window.scrollTo({ top: 0 });
+    }
+
+    // 🏁 採点ボタンが押された時の処理
     document.getElementById('quizForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
         let score = 0;
         const container = document.getElementById('quizContainer');
         
-        // タイトルとボタンを消去・変更
         document.getElementById('mainTitle').innerText = '理解度テスト 結果・解説';
         document.getElementById('submitBtn').style.display = 'none';
         
-        // 各問題を判定
         loadedQuestions.forEach((q, index) => {
             const quizBox = document.getElementById(`box_${index}`);
             const selected = document.querySelector(`input[name="question_${index}"]:checked`);
@@ -106,14 +194,11 @@
             
             if (isCorrect) score++;
             
-            // 画面の見た目を〇×用に書き換える
             quizBox.className = `quiz-box ${isCorrect ? 'correct' : 'incorrect'}`;
             
-            // ラジオボタンを選択不可にする
             const radios = quizBox.querySelectorAll('input[type="radio"]');
             radios.forEach(r => r.disabled = true);
             
-            // 判定バッジと解説を追加
             const resultDiv = document.createElement('div');
             resultDiv.style.marginTop = '15px';
             
@@ -126,7 +211,6 @@
             quizBox.appendChild(resultDiv);
         });
         
-        // 画面最上部に総合点数を表示
         const header = document.createElement('div');
         header.className = 'result-header';
         header.innerHTML = `
@@ -136,7 +220,6 @@
         `;
         container.insertBefore(header, container.firstChild);
         
-        // 最上部へスクロール
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 </script>
