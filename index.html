@@ -35,6 +35,7 @@
         .commentary-box { margin-top: 15px; padding: 12px; background: #fffde7; border-left: 4px solid #f1c40f; font-size: 13px; line-height: 1.5; }
         .your-answer { font-size: 13px; margin-bottom: 5px; text-align: left; }
         .btn-retry { display: block; width: 100%; padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 20px; text-align: center; }
+        .btn-retry:hover { background: #27ae60; }
         
         /* 📊 管理者ダッシュボード用スタイル */
         .admin-dashboard { display: none; margin-top: 20px; }
@@ -66,31 +67,56 @@
             <p>１．本テストは、JBRのビジネスを円滑に進めていただく上で、大変重要なルールや知識を網羅しております。恐れ入りますが、あらかじめ各種マニュアルをご一読いただいた上で、ご受験をお願いいたします。</p>
             <p>２．本テストで16点（満点）を獲得いただくことが、皆様とJBRが信頼できるビジネスパートナーとして歩みを共にするための基準となっております。皆様のご理解とご協力を心よりお願い申し上げます。<br>
             なお、16点（満点）を獲得いただくまで、何度でも受験が可能です。</p>
+            <p>※問題数は全16問から構成され、<u>所要時間は概ね10分程度</u>の内容となっております。</p>
+            <p>（※ご注意）<br>
+            本テストは、再受験のたびに問題や選択肢がランダムに入れ替わります。</p>
         </div>
 
         <div class="input-group">
-            <label for="companyName">会社名<span class="required-tag">*</span></label>
-            <input type="text" id="companyName" placeholder="回答を入力" required>
+            <p>個人情報についてお伺いいたします。<br>あなたの会社名ならびにお名前をご記入ください<br>なお、JBRに新規で会社を登録する場合には作業される方全員の受講をお願いいたします。</p>
+            
+            <div style="margin-top: 15px;">
+                <label for="companyName">会社名<span class="required-tag">*</span></label>
+                <input type="text" id="companyName" placeholder="回答を入力" required>
+            </div>
+            
             <div style="margin-top: 15px;">
                 <label for="userName">氏名<span class="required-tag">*</span></label>
+                <p>姓と名の間に全角スペースを入れてください。</p>
                 <input type="text" id="userName" placeholder="回答を入力" required>
             </div>
-            <div style="margin-top: 15px;">
+        </div>
+
+        <div class="input-group">
+            <label>【個人情報の取り扱いについて】</label>
+            <p>ご入力いただいた個人情報（所属・氏名など）および本テストの受験結果は、以下の目的のためにのみ利用いたします。</p>
+            <p>1. 受験者の識別、および本人確認のため<br>
+            2. マニュアル理解度の習得状況の把握、および社内研修・教育への活用のため<br>
+            3. テストの運営、管理、および結果のご連絡のため</p>
+            <p>取得した個人情報は、当社のプライバシーポリシーおよび情報セキュリティ方針にのっとり、適切かつ厳重に管理いたします。法令に基づく場合を除き、事前の同意なく第三者に提供することはありません。</p>
+            <p>
+                <a href="https://example.com/privacy" target="_blank" style="color: #3498db; text-decoration: underline; font-weight: bold; margin-right: 15px;">プライバシーポリシー</a>
+                <a href="https://example.com/security" target="_blank" style="color: #3498db; text-decoration: underline; font-weight: bold;">情報セキュリティ方針</a>
+            </p>
+            
+            <div style="margin-top: 20px;">
                 <label for="privacyAgree">個人情報の取り扱いについて<span class="required-tag">*</span></label>
+                <p>上記内容をご確認いただき、よろしければ以下のプルダウンより「同意する」を選択してテストへお進みください。</p>
                 <select id="privacyAgree" required>
                     <option value="" disabled selected>選択</option>
                     <option value="同意する">同意する</option>
                 </select>
             </div>
         </div>
+
         <button type="button" class="btn-action" onclick="startQuiz()">テストを開始する</button>
     </div>
 
     <div id="quizScreen" style="display: none;">
         <form id="quizForm">
-            <div id="quizContainer" class="loading">問題を読み込んでいます...</div>
+            <div id="quizResultHeader"></div> <div id="quizContainer" class="loading">問題を読み込んでいます...</div>
             <button type="submit" id="submitBtn" class="btn-action" style="display:none;">回答を終了して採点する</button>
-        </form>
+            <div id="quizResultFooter"></div> </form>
     </div>
 
     <div id="adminDashboard" class="admin-dashboard">
@@ -143,7 +169,7 @@
     
     // 💡 【超重要設定】
     const GITHUB_TOKEN = "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"; 
-    const ADMIN_PASSWORD = "admin"; // ←お好きな管理者パスワードに変更してください
+    const ADMIN_PASSWORD = "jbr2453"; // 管理者パスワード
     
     const REPO_PATH = "jbr-yukinomura/company-test-rules";
 
@@ -165,6 +191,9 @@
         document.getElementById('startScreen').style.display = 'none';
         document.getElementById('quizScreen').style.display = 'block';
 
+        // 画面をまっさらにリセット
+        document.getElementById('quizResultHeader').innerHTML = '';
+        document.getElementById('quizResultFooter').innerHTML = '';
         const container = document.getElementById('quizContainer');
         container.innerHTML = ''; 
         
@@ -193,13 +222,13 @@
             container.appendChild(quizBox);
         });
         document.getElementById('submitBtn').style.display = 'block';
+        window.scrollTo({ top: 0 });
     }
 
     // 🏁 採点・自動ログ送信
     document.getElementById('quizForm').addEventListener('submit', function(e) {
         e.preventDefault();
         let score = 0;
-        const container = document.getElementById('quizContainer');
         document.getElementById('mainTitle').innerText = '理解度テスト 結果・解説';
         document.getElementById('submitBtn').style.display = 'none';
         
@@ -214,17 +243,24 @@
             resultsArray.push(isCorrect ? "〇" : "×");
             
             quizBox.className = `quiz-box ${isCorrect ? 'correct' : 'incorrect'}`;
+            
+            // 既存の解説を二重に追加しないようにチェックして削除
+            const oldResult = quizBox.querySelector('.result-detail-box');
+            if (oldResult) oldResult.remove();
+
             const resultDiv = document.createElement('div');
+            resultDiv.className = 'result-detail-box';
             resultDiv.style.marginTop = '15px';
             resultDiv.innerHTML = `
                 <span class="judge-badge ${isCorrect ? 'badge-ok' : 'badge-ng'}">${isCorrect ? '正解 〇' : '不正解 ×'}</span>
                 <div class="your-answer"><strong>あなたの回答：</strong> ${userAnswer}</div>
                 <div class="your-answer"><strong>正しい正解：</strong> ${q.correctAnswer}</div>
+                ${q.commentary ? `<div class="commentary-box"><strong>💡解説：</strong><br>${q.commentary.replace(/\n/g, '<br>')}</div>` : ''}
             `;
             quizBox.appendChild(resultDiv);
         });
 
-        // 🤖 GitHubのIssueへログを自動投稿 (Googleフォーム送信の代わり)
+        // 🤖 GitHubのIssueへログを自動投稿
         const logPayload = {
             timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
             company: document.getElementById('companyName').value.trim(),
@@ -233,7 +269,6 @@
             results: resultsArray.join(',')
         };
 
-        // 安全分割されたトークンを結合して送信
         fetch(`https://api.github.com/repos/${REPO_PATH}/issues`, {
             method: 'POST',
             headers: {
@@ -242,14 +277,41 @@
             },
             body: JSON.stringify({
                 title: `LOG: ${logPayload.company} - ${logPayload.name}`,
-                body: JSON.stringify(logPayload) // 本文にJSONデータをそのまま格納
+                body: JSON.stringify(logPayload)
             })
         }).catch(err => console.error('ログ送信エラー:', err));
 
-        const header = document.createElement('div');
-        header.className = 'result-header';
-        header.innerHTML = `<h2>採点完了</h2><div class="score">${loadedQuestions.length}問中 ${score}問 正解！</div>`;
-        container.insertBefore(header, container.firstChild);
+        // ⭕ 【ここを修正！】コンテナを消さずに、専用のヘッダー置き場に点数を表示
+        const header = document.getElementById('quizResultHeader');
+        header.innerHTML = `
+            <div class="result-header">
+                <h2>採点完了</h2>
+                <div class="score">${loadedQuestions.length}問中 ${score}問 正解！</div>
+                <p>間違えた部分の解説をよく確認してください。</p>
+            </div>
+        `;
+
+        // ⭕ 【ここを修正！】コンテナの最下部に「もう一度受験する」ボタンを追加
+        const footer = document.getElementById('quizResultFooter');
+        footer.innerHTML = ''; // 初期化
+        const retryBtn = document.createElement('button');
+        retryBtn.type = 'button';
+        retryBtn.className = 'btn-retry';
+        retryBtn.innerText = 'もう一度受験する（最初の画面に戻る）';
+        retryBtn.onclick = function() {
+            document.getElementById('startScreen').style.display = 'block';
+            document.getElementById('quizScreen').style.display = 'none';
+            document.getElementById('mainTitle').innerText = 'JBR加入前スタッフ用理解度テスト（作業編）';
+            
+            // 再受験時に入力欄をリセットしない（保持する）仕様
+            fetch('./questions.json?t=' + new Date().getTime())
+                .then(response => response.json())
+                .then(questions => { loadedQuestions = questions; })
+                .catch(err => { console.error('再読み込み失敗', err); });
+        };
+        footer.appendChild(retryBtn);
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     // 📊 管理者モードの起動と分析処理
@@ -263,7 +325,6 @@
         document.getElementById('quizScreen').style.display = 'none';
         document.getElementById('adminDashboard').style.display = 'block';
         
-        // GitHub Issueから過去の全ログを引き出して集計
         fetch(`https://api.github.com/repos/${REPO_PATH}/issues?state=all&per_page=100`)
             .then(res => res.json())
             .then(issues => {
@@ -283,8 +344,10 @@
         document.getElementById(tabId).classList.add('active');
     }
 
+    let categoryChartInstance = null;
+    let weakQuestionsChartInstance = null;
+
     function renderDashboard(logs) {
-        // ① テーブルの描画
         const tbody = document.querySelector('#logTable tbody');
         tbody.innerHTML = '';
         if(logs.length === 0) {
@@ -292,16 +355,14 @@
             return;
         }
 
-        // 分析用データ初期化
         const categoryStats = {};
         const questionStats = Array(16).fill(0).map(() => ({ title: '', wrongCount: 0 }));
 
         logs.forEach(log => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${log.timestamp}</td><td>${log.company}</td><td>${log.name}</td><strong><td>${log.score}</td></strong><td>${log.results}</td>`;
+            tr.innerHTML = `<td>${log.timestamp}</td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td><td>${log.results}</td>`;
             tbody.appendChild(tr);
 
-            // 集計処理
             const results = log.results.split(',');
             loadedQuestions.forEach((q, idx) => {
                 const isCorrect = (results[idx] === '〇');
@@ -315,21 +376,23 @@
             });
         });
 
-        // ② カテゴリチャート描画
+        // チャートの重複描画を防ぐためのリセット処理
+        if (categoryChartInstance) categoryChartInstance.destroy();
+        if (weakQuestionsChartInstance) weakQuestionsChartInstance.destroy();
+
         const catLabels = Object.keys(categoryStats);
         const catData = catLabels.map(l => Math.round((categoryStats[l].correct / categoryStats[l].total) * 100));
-        new Chart(document.getElementById('categoryChart'), {
+        categoryChartInstance = new Chart(document.getElementById('categoryChart'), {
             type: 'bar',
             data: { labels: catLabels, datasets: [{ label: '正答率 (%)', data: catData, backgroundColor: '#3498db' }] },
             options: { scales: { y: { min: 0, max: 100 } } }
         });
 
-        // ③ ワースト問題チャート描画
         const sortedQuestions = [...questionStats].sort((a,b) => b.wrongCount - a.wrongCount).slice(0, 5);
-        new Chart(document.getElementById('weakQuestionsChart'), {
-            type: 'y',
+        weakQuestionsChartInstance = new Chart(document.getElementById('weakQuestionsChart'), {
+            type: 'bar',
             data: { 
-                labels: sortedQuestions.map(q => q.title.substring(0, 15) + '...'), 
+                labels: sortedQuestions.map(q => q.title.substring(0, 12) + '...'), 
                 datasets: [{ label: '誤答数', data: sortedQuestions.map(q => q.wrongCount), backgroundColor: '#e74c3c' }] 
             }
         });
