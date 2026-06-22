@@ -131,7 +131,7 @@
         <div id="tabOverall" class="tab-content active">
             <div class="dashboard-grid">
                 <div class="card">
-                    <h3>💡 小カテゴリ別 正答率（%）</h3>
+                    <h3>💡 カテゴリ別 正答率（%）</h3>
                     <canvas id="categoryChart"></canvas>
                 </div>
                 <div class="card">
@@ -175,6 +175,20 @@
     const ADMIN_PASSWORD = "jbr2453"; 
     const REPO_PATH = "jbr-yukinomura/company-test-rules";
 
+    // 🌐 問題文や解説文から自動で分かりやすいカテゴリを自動判定する羅針盤関数
+    function detectCategory(q) {
+        const text = (q.title + " " + (q.commentary || "")).toLowerCase();
+        if (text.includes("養生")) return "養生・道具配置編";
+        if (text.includes("サービス書") || text.includes("完了書") || text.includes("見積書")) return "サービス書運用編";
+        if (text.includes("作業車") || text.includes("駐車")) return "作業車・駐車場編";
+        if (text.includes("名刺")) return "名刺・身だしなみ編";
+        if (text.includes("不在") || text.includes("外出")) return "作業中留守対応編";
+        if (text.includes("高速") || text.includes("遠方")) return "経費・高速代申請編";
+        if (text.includes("中間報告")) return "報告・イレギュラー連絡編";
+        if (text.includes("私物") || text.includes("工具")) return "顧客私物使用制限編";
+        return "基本マナー・その他";
+    }
+
     // 🌐 マスター問題をロード
     fetch('./questions.json?t=' + new Date().getTime())
         .then(response => response.json())
@@ -190,14 +204,12 @@
         return array;
     }
 
-    // 🎯 【バグ修正完了！】マスター配列から完全にランダムに16問を抽出するロジック
+    // 🎯 マスター配列から完全にランダムに16問を抽出する安全なロジック
     function generateQuizSet() {
         if (allMasterQuestions.length === 0) return;
         
-        // 元のデータを壊さないようにコピーしてシャッフル
+        // 16問を全シャッフルして抽出
         const shuffledMaster = shuffleArray([...allMasterQuestions]);
-        
-        // 上位16問を切り抜く（問題数が16問未満の場合はあるだけ全部抽出）
         currentQuizQuestions = shuffledMaster.slice(0, 16);
     }
 
@@ -211,7 +223,6 @@
             return;
         }
 
-        // クイズ問題セットを安全にランダム生成（16問きっちり出ます！）
         generateQuizSet();
 
         document.getElementById('startScreen').style.display = 'none';
@@ -227,8 +238,8 @@
             quizBox.className = 'quiz-box';
             quizBox.id = `box_${index}`;
             
-            // 💡 JSONデータのキー名が category ではなく、大文字混じりの subCategory などの場合はここを修正してください
-            const displayCategory = q.category || q.subCategory || '未分類';
+            // 自動判定したカテゴリ名を使用
+            const displayCategory = detectCategory(q);
             
             const titleEl = document.createElement('div');
             titleEl.className = 'quiz-title';
@@ -388,19 +399,19 @@
             pairs.forEach(pair => {
                 const parts = pair.split(':');
                 if(parts.length !== 2) return;
-                const qId = parseInt(parts[0]);
+                const qIdStr = parts[0];
                 const isCorrect = (parts[1] === '〇');
 
-                const targetQ = allMasterQuestions.find(m => m.id === qId);
+                const targetQ = allMasterQuestions.find(m => String(m.id) === qIdStr);
                 if(targetQ) {
-                    const displayCategory = targetQ.category || targetQ.subCategory || '未分類';
+                    const displayCategory = detectCategory(targetQ);
                     if (!categoryStats[displayCategory]) categoryStats[displayCategory] = { correct: 0, total: 0 };
                     categoryStats[displayCategory].total++;
                     if (isCorrect) categoryStats[displayCategory].correct++;
                 }
 
-                if (!isCorrect && questionWrongMap[qId]) {
-                    questionWrongMap[qId].count++;
+                if (!isCorrect && questionWrongMap[qIdStr]) {
+                    questionWrongMap[qIdStr].count++;
                 }
             });
         });
