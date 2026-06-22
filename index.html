@@ -260,7 +260,7 @@
             quizBox.appendChild(resultDiv);
         });
 
-        // 🤖 GitHubのIssueへログを自動投稿
+        // 🤖 【ここを修正！】GitHubのIssueへログを自動投稿
         const logPayload = {
             timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
             company: document.getElementById('companyName').value.trim(),
@@ -272,7 +272,9 @@
         fetch(`https://api.github.com/repos/${REPO_PATH}/issues`, {
             method: 'POST',
             headers: {
-                'Authorization': `token ${GITHUB_TOKEN.trim()}`,
+                // ⭕ 'token' ではなく 'Bearer' に修正することで、401エラーを完全撃破します！
+                'Authorization': `Bearer ${GITHUB_TOKEN.trim()}`,
+                'Accept': 'application/vnd.github.v3+json',
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
