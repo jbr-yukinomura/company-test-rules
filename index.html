@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; line-height: 1.6; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; border-bottom: 2px solid #3498db; padding-bottom: 10px; font-size: 20px; position: relative; }
         .admin-link { position: absolute; right: 0; top: -10px; font-size: 12px; color: #bdc3c7; cursor: pointer; text-decoration: none; user-select: none; }
         .info-section { background: #fafafa; border: 1px solid #e0e0e0; padding: 20px; border-radius: 6px; margin-bottom: 25px; font-size: 14px; }
@@ -46,11 +46,13 @@
         .tab-content.active { display: block; }
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
         .card { background: #fafafa; border: 1px solid #ddd; padding: 20px; border-radius: 6px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+        th, td { border: 1px solid #ddd; padding: 8px 6px; text-align: center; white-space: nowrap; }
+        th { background-color: #f2f2f2; font-size: 11px; }
         tr:hover { background-color: #f5f5f5; }
         .text-center { text-align: center; }
+        .log-ok { color: #2ecc71; font-weight: bold; }
+        .log-ng { color: #e74c3c; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -144,19 +146,18 @@
         <div id="tabIndividual" class="tab-content">
             <div class="card">
                 <h3>受講者ログ一覧</h3>
-                <div style="overflow-x: auto;">
+                <div style="overflow-x: auto; max-width: 100%;">
                     <table id="logTable">
                         <thead>
-                            <tr>
+                            <tr id="tableHeaderRow">
                                 <th>日時</th>
                                 <th>会社名</th>
                                 <th>氏名</th>
                                 <th>得点</th>
-                                <th style="min-width: 400px;">詳細（Q1〜Q54の通し結果）</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr><td colspan="5" class="text-center">ログを読み込んでいます...</td></tr>
+                            <tr><td colspan="4" class="text-center">ログを読み込んでいます...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -171,12 +172,12 @@
     let currentQuizQuestions = []; 
     
     // 💡 設定
-    const ADMIN_PASSWORD = "jbr2453"; // 社内共有用パスワード
+    const ADMIN_PASSWORD = "jbr2453"; 
     const REPO_PATH = "jbr-yukinomura/company-test-rules";
 
     // 🔒 クラシックトークンの貼り付け
-    const TOKEN_PART1 = "ghp_seAvsPGZIxQxaLz6Hc"; // 前半半分
-    const TOKEN_PART2 = "Qgew3o1I3BH93kB9kk";    // 後半半分
+    const TOKEN_PART1 = "ghp_seAvsPGZIxQxaLz6Hc"; 
+    const TOKEN_PART2 = "Qgew3o1I3BH93kB9kk";    
 
     // 🌐 マスター問題をロード
     fetch('./questions.json?t=' + new Date().getTime())
@@ -272,7 +273,6 @@
         document.getElementById('mainTitle').innerText = '理解度テスト 結果・解説';
         document.getElementById('submitBtn').style.display = 'none';
         
-        // 💡 【大改造】出題された順ではなく、Q1〜Q54の固定マップを作成して集計します
         const resultMapping = {};
         
         currentQuizQuestions.forEach((q, index) => {
@@ -282,7 +282,6 @@
             const isCorrect = (userAnswer === q.correctAnswer);
             if (isCorrect) score++;
             
-            // Q1〜Q54のIDをキーにして結果を記録
             resultMapping[q.id] = isCorrect ? '〇' : '×';
             
             quizBox.className = `quiz-box ${isCorrect ? 'correct' : 'incorrect'}`;
@@ -302,24 +301,22 @@
             quizBox.appendChild(resultDiv);
         });
 
-        // 💡 【大改造】Q1からQ54まで綺麗に順番に並んだ文字列を生成する
+        // 💡 Q1〜Q54までの全結果配列を作って送信形式を維持
         const finalResultsArray = [];
         for (let i = 1; i <= 54; i++) {
             const key = "Q" + i;
             if (resultMapping[key]) {
                 finalResultsArray.push(`${key}:${resultMapping[key]}`);
             } else {
-                finalResultsArray.push(`${key}:-`); // 出題されなかった問題は「-」で固定
+                finalResultsArray.push(`${key}:-`);
             }
         }
 
-        // 🛠️ 【ここを修正！】送信するデータを「finalResultsArray」に変更します！
         const logPayload = {
             timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
             company: document.getElementById('companyName').value.trim(),
             name: document.getElementById('userName').value.trim(),
             score: `${score}/${currentQuizQuestions.length}`,
-            // ⭕️ resultsArray ではなく、綺麗に並び替えた「finalResultsArray」を送信します！
             results: finalResultsArray.join(',') 
         };
 
@@ -396,10 +393,27 @@
     let weakQuestionsChartInstance = null;
 
     function renderDashboard(logs) {
+        // ① 全マスターデータから、存在するユニークなカテゴリ（16種類）を抽出してヘッダー列を動的生成
+        const categories = [];
+        allMasterQuestions.forEach(q => {
+            const cat = q.category || '未分類';
+            if (!categories.includes(cat)) categories.push(cat);
+        });
+        categories.sort();
+
+        // テーブルの1行目（ヘッダー）を綺麗に作り直す
+        const headerRow = document.getElementById('tableHeaderRow');
+        headerRow.innerHTML = '<th>日時</th><th>会社名</th><th>氏名</th><th>得点</th>';
+        categories.forEach(cat => {
+            const th = document.createElement('th');
+            th.innerText = cat;
+            headerRow.appendChild(th);
+        });
+
         const tbody = document.querySelector('#logTable tbody');
         tbody.innerHTML = '';
         if(logs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center">回答ログはまだありません。</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="${4 + categories.length}" class="text-center">回答ログはまだありません。</td></tr>`;
             return;
         }
 
@@ -408,23 +422,26 @@
         allMasterQuestions.forEach(q => { questionWrongMap[q.id] = { title: q.title, count: 0 }; });
 
         logs.forEach(log => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${log.timestamp}</td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td><td><div style="max-width:450px; word-break:break-all; font-family:monospace; font-size:11px;">${log.results}</div></td>`;
-            tbody.appendChild(tr);
-
+            // 💡 各行（各受講者）のデータをセルにばらす
+            const rowDataMap = {};
             const pairs = log.results.split(',');
+            
             pairs.forEach(pair => {
                 const parts = pair.split(':');
                 if(parts.length !== 2) return;
                 const qIdStr = parts[0];
                 const status = parts[1]; // 〇, ×, -
                 
-                if (status === '-') return; // 解いていない問題は集計から除外
+                if (status === '-') return;
                 const isCorrect = (status === '〇');
 
                 const targetQ = allMasterQuestions.find(m => String(m.id) === qIdStr);
                 if(targetQ) {
                     const displayCategory = targetQ.category || '未分類';
+                    
+                    // ⭕️ 【超重要】このカテゴリの列には「問題番号:結果」を表示
+                    rowDataMap[displayCategory] = `${qIdStr}:${status}`;
+
                     if (!categoryStats[displayCategory]) categoryStats[displayCategory] = { correct: 0, total: 0 };
                     categoryStats[displayCategory].total++;
                     if (isCorrect) categoryStats[displayCategory].correct++;
@@ -434,6 +451,26 @@
                     questionWrongMap[qIdStr].count++;
                 }
             });
+
+            // 行（tr）を生成して基本項目を差し込む
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${log.timestamp}</td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td>`;
+            
+            // ⭕️ 16個のカテゴリ順にループを回して、該当問題の〇✖をカラムに綺麗に並べる
+            categories.forEach(cat => {
+                const td = document.createElement('td');
+                if (rowDataMap[cat]) {
+                    td.innerText = rowDataMap[cat]; // 例「Q1:〇」
+                    if (rowDataMap[cat].includes('〇')) td.className = 'log-ok';
+                    if (rowDataMap[cat].includes('×')) td.className = 'log-ng';
+                } else {
+                    td.innerText = '-'; // 出題されなかったカテゴリはハイフン
+                    td.style.color = '#ccc';
+                }
+                tr.appendChild(td);
+            });
+            
+            tbody.appendChild(tr);
         });
 
         if (categoryChartInstance) categoryChartInstance.destroy();
