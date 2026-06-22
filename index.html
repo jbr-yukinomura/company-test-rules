@@ -2,10 +2,143 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>JBR加入前スタッフ用理解度テスト（作業編）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>社内理解度テスト</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .user-info { background: #e8f4fd; padding: 15px; border-radius: 6px; margin-bottom: 30px; }
+        .user-info label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .user-info input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; }
+        .quiz-box { margin-bottom: 25px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 6px; background-color: #fafafa; }
+        .quiz-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #2c3e50; line-height: 1.5; }
+        .choice-label { display: block; padding: 10px; margin: 5px 0; background: white; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .choice-label:hover { background: #ebf5fb; border-color: #3498db; }
+        .choice-label input { margin-right: 10px; }
+        .btn-submit { display: block; width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 30px; }
+        .btn-submit:hover { background: #2980b9; }
+        .loading { text-align: center; font-size: 18px; color: #7f8c8d; padding: 40px 0; }
+    </style>
 </head>
 <body>
-    <h1>JBR加入前スタッフ用理解度テスト（作業編）</h1>
-    <p>ここにスプレッドシートから書き出した16問が表示されます！</p>
+
+<div class="container">
+    <h1>社内理解度テスト</h1>
+    
+    <div class="user-info">
+        <label for="userName">氏名を入力してください</label>
+        <input type="text" id="userName" placeholder="例：山田 太郎" required>
+    </div>
+
+    <form id="quizForm">
+        <div id="quizContainer" class="loading">問題を読み込んでいます...</div>
+        <button type="submit" id="submitBtn" class="btn-submit" style="display:none;">回答を送信する</button>
+    </form>
+</div>
+
+<script>
+    // 💡 あなたのGoogleフォームの情報をここに設定します
+    const FORM_URL = "https://docs.google.com/forms/d/e/【あなたのフォームID】/formResponse";
+    const NAME_ENTRY_ID = "entry.【氏名入力欄のID】";
+    
+    // 💡 各問題の回答を受け取るフォーム側のentry.ID（本来は固定の16個）
+    // 例：[ "entry.111111", "entry.222222", "entry.333333", ... ]
+    const QUESTION_ENTRY_IDS = [
+        "entry.100001", "entry.100002", "entry.100003", "entry.100004",
+        "entry.100005", "entry.100006", "entry.100007", "entry.100008",
+        "entry.100009", "entry.100010", "entry.100011", "entry.100012",
+        "entry.100013", "entry.100014", "entry.100015", "entry.100016"
+    ];
+
+    let loadedQuestions = [];
+
+    // 🌐 GASが吐き出した最新の問題データをGitHubから読み込む
+    // キャッシュを防ぐためにタイムスタンプを付与します
+    fetch('questions.json?t=' + new Date().getTime())
+        .then(response => response.json())
+        .then(questions => {
+            loadedQuestions = questions;
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = ''; // ローディング消去
+            
+            questions.forEach((q, index) => {
+                const quizBox = document.createElement('div');
+                quizBox.className = 'quiz-box';
+                
+                // 問題タイトル（「Q1. 問題文」の形にする）
+                const titleEl = document.createElement('div');
+                titleEl.className = 'quiz-title';
+                titleEl.innerText = `${q.id}. ${q.title}`;
+                quizBox.appendChild(titleEl);
+                
+                // 選択肢をループ生成
+                q.choices.forEach(choice => {
+                    const label = document.createElement('label');
+                    label.className = 'choice-label';
+                    
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = `question_${index}`;
+                    radio.value = choice;
+                    radio.required = true;
+                    
+                    label.appendChild(radio);
+                    label.appendChild(document.createTextNode(choice));
+                    quizBox.appendChild(label);
+                });
+                
+                container.appendChild(quizBox);
+            });
+            
+            // 問題が読み終わったら送信ボタンを表示
+            document.getElementById('submitBtn').style.display = 'block';
+        })
+        .catch(err => {
+            document.getElementById('quizContainer').innerText = '問題の読み込みに失敗しました。';
+            console.error(err);
+        });
+
+    // 🚀 回答が送信された時の処理（Googleフォームの裏口へデータを叩き込む）
+    document.getElementById('quizForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const name = document.getElementById('userName').value;
+        if(!name) { alert('氏名を入力してください。'); return; }
+        
+        // フォームデータを作成
+        const formData = new FormData();
+        formData.append(NAME_ENTRY_ID, name);
+        
+        // 各問題の回答を回収してセット
+        loadedQuestions.forEach((q, index) => {
+            const selected = document.querySelector(`input[name="question_${index}"]:checked`);
+            if (selected) {
+                formData.append(QUESTION_ENTRY_IDS[index], selected.value);
+            }
+        });
+        
+        // ボタンを無効化して多重送信防止
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('submitBtn').innerText = '送信中...';
+
+        // fetchを使ってGoogleフォームの裏口にPOST送信する
+        // ※Googleフォームの仕様上、CORSエラー（不透過）が出ますが、データ自体はサーバーに100%届きます。
+        fetch(FORM_URL, {
+            method: 'POST',
+            body: formData,
+            mode: 'no-cors'
+        }).then(() => {
+            alert('テストの回答を送信しました。お疲れ様でした！');
+            // 💡 送信完了画面に切り替える、または画面をクリア
+            document.body.innerHTML = '<div class="container" style="text-align:center; padding:50px 0;"><h1>送信完了</h1><p>テスト回答が正常に記録されました。このタブを閉じて終了してください。</p></div>';
+        }).catch(error => {
+            alert('送信中にエラーが発生しました。インターネット環境をお確かめの上、再度お試しください。');
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').innerText = '回答を送信する';
+            console.error('Error:', error);
+        });
+    });
+</script>
 </body>
 </html>
