@@ -61,7 +61,6 @@
         <span class="admin-link" onclick="openAdminModal()">⚙️管理者モード</span>
     </h1>
     
-    <!-- 📋 画面1：案内 ＆ 個人情報入力 -->
     <div id="startScreen">
         <div class="info-section">
             <p><strong>【受験者への案内】</strong></p>
@@ -113,7 +112,6 @@
         <button type="button" class="btn-action" onclick="startQuiz()">テストを開始する</button>
     </div>
 
-    <!-- 📝 画面2：クイズ本編 -->
     <div id="quizScreen" style="display: none;">
         <form id="quizForm">
             <div id="quizResultHeader"></div>
@@ -123,7 +121,6 @@
         </form>
     </div>
 
-    <!-- 📊 画面3：管理者ダッシュボード -->
     <div id="adminDashboard" class="admin-dashboard">
         <h2>📊 JBR理解度テスト 管理者ダッシュボード</h2>
         <div class="tab-menu">
@@ -173,6 +170,7 @@
     let allMasterQuestions = []; // 全問題のマスターデータ
     let currentQuizQuestions = []; // 今回出題する16問
     
+    // 💡 設定
     const GITHUB_TOKEN = "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"; 
     const ADMIN_PASSWORD = "jbr2453"; 
     const REPO_PATH = "jbr-yukinomura/company-test-rules";
@@ -192,24 +190,15 @@
         return array;
     }
 
-    // 🎯 カテゴリごとに1問抽出し、16問を生成してシャッフル
+    // 🎯 【バグ修正完了！】マスター配列から完全にランダムに16問を抽出するロジック
     function generateQuizSet() {
-        const categoryMap = {};
-        allMasterQuestions.forEach(q => {
-            const cat = q.category || "未分類"; // 💡jsonのキー名に合わせて調整してください
-            if (!categoryMap[cat]) categoryMap[cat] = [];
-            categoryMap[cat].push(q);
-        });
-
-        const selectedList = [];
-        Object.keys(categoryMap).forEach(cat => {
-            const pool = categoryMap[cat];
-            const randomPick = pool[Math.floor(Math.random() * pool.length)];
-            selectedList.push(randomPick);
-        });
-
-        // 16問になるよう調整し、全体をランダムシャッフル
-        currentQuizQuestions = shuffleArray(selectedList).slice(0, 16);
+        if (allMasterQuestions.length === 0) return;
+        
+        // 元のデータを壊さないようにコピーしてシャッフル
+        const shuffledMaster = shuffleArray([...allMasterQuestions]);
+        
+        // 上位16問を切り抜く（問題数が16問未満の場合はあるだけ全部抽出）
+        currentQuizQuestions = shuffledMaster.slice(0, 16);
     }
 
     function startQuiz() {
@@ -222,7 +211,7 @@
             return;
         }
 
-        // クイズ問題セットをランダム生成
+        // クイズ問題セットを安全にランダム生成（16問きっちり出ます！）
         generateQuizSet();
 
         document.getElementById('startScreen').style.display = 'none';
@@ -238,9 +227,12 @@
             quizBox.className = 'quiz-box';
             quizBox.id = `box_${index}`;
             
+            // 💡 JSONデータのキー名が category ではなく、大文字混じりの subCategory などの場合はここを修正してください
+            const displayCategory = q.category || q.subCategory || '未分類';
+            
             const titleEl = document.createElement('div');
             titleEl.className = 'quiz-title';
-            titleEl.innerText = `Q${index + 1}. [${q.category || '未分類'}] ${q.title}`;
+            titleEl.innerText = `Q${index + 1}. [${displayCategory}] ${q.title}`;
             quizBox.appendChild(titleEl);
             
             // 選択肢もシャッフルして表示
@@ -277,8 +269,6 @@
             const isCorrect = (userAnswer === q.correctAnswer);
             if (isCorrect) score++;
             
-            // 分析ログ用には、JSONマスター上の元の問題IDをベースに記録を紐付けるなど工夫可能ですが、
-            // 今回はシンプルに「出題順の〇×」を記録します
             resultsArray.push(`${q.id}:${isCorrect ? '〇' : '×'}`);
             
             quizBox.className = `quiz-box ${isCorrect ? 'correct' : 'incorrect'}`;
@@ -304,7 +294,7 @@
             company: document.getElementById('companyName').value.trim(),
             name: document.getElementById('userName').value.trim(),
             score: `${score}/${currentQuizQuestions.length}`,
-            results: resultsArray.join(',') // "1:〇,5:×,2:〇..." の形式で保存
+            results: resultsArray.join(',')
         };
 
         fetch(`https://api.github.com/repos/${REPO_PATH}/issues`, {
@@ -394,7 +384,6 @@
             tr.innerHTML = `<td>${log.timestamp}</td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td><td>${log.results}</td>`;
             tbody.appendChild(tr);
 
-            // "ID:〇" の形式を分解して集計
             const pairs = log.results.split(',');
             pairs.forEach(pair => {
                 const parts = pair.split(':');
@@ -404,10 +393,10 @@
 
                 const targetQ = allMasterQuestions.find(m => m.id === qId);
                 if(targetQ) {
-                    const cat = targetQ.category || '未分類';
-                    if (!categoryStats[cat]) categoryStats[cat] = { correct: 0, total: 0 };
-                    categoryStats[cat].total++;
-                    if (isCorrect) categoryStats[cat].correct++;
+                    const displayCategory = targetQ.category || targetQ.subCategory || '未分類';
+                    if (!categoryStats[displayCategory]) categoryStats[displayCategory] = { correct: 0, total: 0 };
+                    categoryStats[displayCategory].total++;
+                    if (isCorrect) categoryStats[displayCategory].correct++;
                 }
 
                 if (!isCorrect && questionWrongMap[qId]) {
