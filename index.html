@@ -61,6 +61,7 @@
         <span class="admin-link" onclick="openAdminModal()">⚙️管理者モード</span>
     </h1>
     
+    <!-- 📋 画面1：案内 ＆ 個人情報入力 -->
     <div id="startScreen">
         <div class="info-section">
             <p><strong>【受験者への案内】</strong></p>
@@ -112,13 +113,17 @@
         <button type="button" class="btn-action" onclick="startQuiz()">テストを開始する</button>
     </div>
 
+    <!-- 📝 画面2：クイズ本編 -->
     <div id="quizScreen" style="display: none;">
         <form id="quizForm">
-            <div id="quizResultHeader"></div> <div id="quizContainer" class="loading">問題を読み込んでいます...</div>
+            <div id="quizResultHeader"></div>
+            <div id="quizContainer" class="loading">問題を読み込んでいます...</div>
             <button type="submit" id="submitBtn" class="btn-action" style="display:none;">回答を終了して採点する</button>
-            <div id="quizResultFooter"></div> </form>
+            <div id="quizResultFooter"></div>
+        </form>
     </div>
 
+    <!-- 📊 画面3：管理者ダッシュボード -->
     <div id="adminDashboard" class="admin-dashboard">
         <h2>📊 JBR理解度テスト 管理者ダッシュボード</h2>
         <div class="tab-menu">
@@ -165,19 +170,47 @@
 </div>
 
 <script>
-    let loadedQuestions = [];
+    let allMasterQuestions = []; // 全問題のマスターデータ
+    let currentQuizQuestions = []; // 今回出題する16問
     
-    // 💡 【超重要設定】
     const GITHUB_TOKEN = "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"; 
-    const ADMIN_PASSWORD = "jbr2453"; // 管理者パスワード
-    
+    const ADMIN_PASSWORD = "jbr2453"; 
     const REPO_PATH = "jbr-yukinomura/company-test-rules";
 
-    // 🌐 問題データの読み込み
+    // 🌐 マスター問題をロード
     fetch('./questions.json?t=' + new Date().getTime())
         .then(response => response.json())
-        .then(questions => { loadedQuestions = questions; })
+        .then(questions => { allMasterQuestions = questions; })
         .catch(err => { console.error('問題の読み込みに失敗しました。', err); });
+
+    // 🎲 配列をシャッフルする汎用関数
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    // 🎯 カテゴリごとに1問抽出し、16問を生成してシャッフル
+    function generateQuizSet() {
+        const categoryMap = {};
+        allMasterQuestions.forEach(q => {
+            const cat = q.category || "未分類"; // 💡jsonのキー名に合わせて調整してください
+            if (!categoryMap[cat]) categoryMap[cat] = [];
+            categoryMap[cat].push(q);
+        });
+
+        const selectedList = [];
+        Object.keys(categoryMap).forEach(cat => {
+            const pool = categoryMap[cat];
+            const randomPick = pool[Math.floor(Math.random() * pool.length)];
+            selectedList.push(randomPick);
+        });
+
+        // 16問になるよう調整し、全体をランダムシャッフル
+        currentQuizQuestions = shuffleArray(selectedList).slice(0, 16);
+    }
 
     function startQuiz() {
         const company = document.getElementById('companyName').value.trim();
@@ -188,26 +221,31 @@
             alert('必須項目(*)をすべて入力し、個人情報の取り扱いに「同意する」を選択してください。');
             return;
         }
+
+        // クイズ問題セットをランダム生成
+        generateQuizSet();
+
         document.getElementById('startScreen').style.display = 'none';
         document.getElementById('quizScreen').style.display = 'block';
 
-        // 画面をまっさらにリセット
         document.getElementById('quizResultHeader').innerHTML = '';
         document.getElementById('quizResultFooter').innerHTML = '';
         const container = document.getElementById('quizContainer');
         container.innerHTML = ''; 
         
-        loadedQuestions.forEach((q, index) => {
+        currentQuizQuestions.forEach((q, index) => {
             const quizBox = document.createElement('div');
             quizBox.className = 'quiz-box';
             quizBox.id = `box_${index}`;
             
             const titleEl = document.createElement('div');
             titleEl.className = 'quiz-title';
-            titleEl.innerText = `${q.id}. [${q.category || '未分類'}] ${q.title}`;
+            titleEl.innerText = `Q${index + 1}. [${q.category || '未分類'}] ${q.title}`;
             quizBox.appendChild(titleEl);
             
-            q.choices.forEach(choice => {
+            // 選択肢もシャッフルして表示
+            const shuffledChoices = shuffleArray([...q.choices]);
+            shuffledChoices.forEach(choice => {
                 const label = document.createElement('label');
                 label.className = 'choice-label';
                 const radio = document.createElement('input');
@@ -225,7 +263,6 @@
         window.scrollTo({ top: 0 });
     }
 
-    // 🏁 採点・自動ログ送信
     document.getElementById('quizForm').addEventListener('submit', function(e) {
         e.preventDefault();
         let score = 0;
@@ -233,18 +270,19 @@
         document.getElementById('submitBtn').style.display = 'none';
         
         const resultsArray = [];
-        loadedQuestions.forEach((q, index) => {
+        currentQuizQuestions.forEach((q, index) => {
             const quizBox = document.getElementById(`box_${index}`);
             const selected = document.querySelector(`input[name="question_${index}"]:checked`);
             const userAnswer = selected ? selected.value : "未回答";
             const isCorrect = (userAnswer === q.correctAnswer);
             if (isCorrect) score++;
             
-            resultsArray.push(isCorrect ? "〇" : "×");
+            // 分析ログ用には、JSONマスター上の元の問題IDをベースに記録を紐付けるなど工夫可能ですが、
+            // 今回はシンプルに「出題順の〇×」を記録します
+            resultsArray.push(`${q.id}:${isCorrect ? '〇' : '×'}`);
             
             quizBox.className = `quiz-box ${isCorrect ? 'correct' : 'incorrect'}`;
             
-            // 既存の解説を二重に追加しないようにチェックして削除
             const oldResult = quizBox.querySelector('.result-detail-box');
             if (oldResult) oldResult.remove();
 
@@ -260,19 +298,18 @@
             quizBox.appendChild(resultDiv);
         });
 
-        // 🤖 【ここを修正！】GitHubのIssueへログを自動投稿
+        // 🤖 ログ送信
         const logPayload = {
             timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
             company: document.getElementById('companyName').value.trim(),
             name: document.getElementById('userName').value.trim(),
-            score: `${score}/${loadedQuestions.length}`,
-            results: resultsArray.join(',')
+            score: `${score}/${currentQuizQuestions.length}`,
+            results: resultsArray.join(',') // "1:〇,5:×,2:〇..." の形式で保存
         };
 
         fetch(`https://api.github.com/repos/${REPO_PATH}/issues`, {
             method: 'POST',
             headers: {
-                // ⭕ 'token' ではなく 'Bearer' に修正することで、401エラーを完全撃破します！
                 'Authorization': `Bearer ${GITHUB_TOKEN.trim()}`,
                 'Accept': 'application/vnd.github.v3+json',
                 'Content-Type': 'application/json'
@@ -283,40 +320,31 @@
             })
         }).catch(err => console.error('ログ送信エラー:', err));
 
-        // ⭕ 【ここを修正！】コンテナを消さずに、専用のヘッダー置き場に点数を表示
         const header = document.getElementById('quizResultHeader');
         header.innerHTML = `
             <div class="result-header">
                 <h2>採点完了</h2>
-                <div class="score">${loadedQuestions.length}問中 ${score}問 正解！</div>
+                <div class="score">${currentQuizQuestions.length}問中 ${score}問 正解！</div>
                 <p>間違えた部分の解説をよく確認してください。</p>
             </div>
         `;
 
-        // ⭕ 【ここを修正！】コンテナの最下部に「もう一度受験する」ボタンを追加
         const footer = document.getElementById('quizResultFooter');
-        footer.innerHTML = ''; // 初期化
+        footer.innerHTML = ''; 
         const retryBtn = document.createElement('button');
         retryBtn.type = 'button';
         retryBtn.className = 'btn-retry';
-        retryBtn.innerText = 'もう一度受験する（最初の画面に戻る）';
+        retryBtn.innerText = 'もう一度受験する（新しい問題にチャレンジ）';
         retryBtn.onclick = function() {
             document.getElementById('startScreen').style.display = 'block';
             document.getElementById('quizScreen').style.display = 'none';
             document.getElementById('mainTitle').innerText = 'JBR加入前スタッフ用理解度テスト（作業編）';
-            
-            // 再受験時に入力欄をリセットしない（保持する）仕様
-            fetch('./questions.json?t=' + new Date().getTime())
-                .then(response => response.json())
-                .then(questions => { loadedQuestions = questions; })
-                .catch(err => { console.error('再読み込み失敗', err); });
         };
         footer.appendChild(retryBtn);
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // 📊 管理者モードの起動と分析処理
     function openAdminModal() {
         const input = prompt("管理者パスワードを入力してください:");
         if (input !== ADMIN_PASSWORD) {
@@ -358,27 +386,36 @@
         }
 
         const categoryStats = {};
-        const questionStats = Array(16).fill(0).map(() => ({ title: '', wrongCount: 0 }));
+        const questionWrongMap = {}; 
+        allMasterQuestions.forEach(q => { questionWrongMap[q.id] = { title: q.title, count: 0 }; });
 
         logs.forEach(log => {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${log.timestamp}</td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td><td>${log.results}</td>`;
             tbody.appendChild(tr);
 
-            const results = log.results.split(',');
-            loadedQuestions.forEach((q, idx) => {
-                const isCorrect = (results[idx] === '〇');
-                const cat = q.category || '未分類';
-                if (!categoryStats[cat]) categoryStats[cat] = { correct: 0, total: 0 };
-                categoryStats[cat].total++;
-                if (isCorrect) categoryStats[cat].correct++;
+            // "ID:〇" の形式を分解して集計
+            const pairs = log.results.split(',');
+            pairs.forEach(pair => {
+                const parts = pair.split(':');
+                if(parts.length !== 2) return;
+                const qId = parseInt(parts[0]);
+                const isCorrect = (parts[1] === '〇');
 
-                questionStats[idx].title = q.title;
-                if (!isCorrect) questionStats[idx].wrongCount++;
+                const targetQ = allMasterQuestions.find(m => m.id === qId);
+                if(targetQ) {
+                    const cat = targetQ.category || '未分類';
+                    if (!categoryStats[cat]) categoryStats[cat] = { correct: 0, total: 0 };
+                    categoryStats[cat].total++;
+                    if (isCorrect) categoryStats[cat].correct++;
+                }
+
+                if (!isCorrect && questionWrongMap[qId]) {
+                    questionWrongMap[qId].count++;
+                }
             });
         });
 
-        // チャートの重複描画を防ぐためのリセット処理
         if (categoryChartInstance) categoryChartInstance.destroy();
         if (weakQuestionsChartInstance) weakQuestionsChartInstance.destroy();
 
@@ -390,12 +427,12 @@
             options: { scales: { y: { min: 0, max: 100 } } }
         });
 
-        const sortedQuestions = [...questionStats].sort((a,b) => b.wrongCount - a.wrongCount).slice(0, 5);
+        const sortedQuestions = Object.values(questionWrongMap).sort((a,b) => b.count - a.count).slice(0, 5);
         weakQuestionsChartInstance = new Chart(document.getElementById('weakQuestionsChart'), {
             type: 'bar',
             data: { 
                 labels: sortedQuestions.map(q => q.title.substring(0, 12) + '...'), 
-                datasets: [{ label: '誤答数', data: sortedQuestions.map(q => q.wrongCount), backgroundColor: '#e74c3c' }] 
+                datasets: [{ label: '誤答数', data: sortedQuestions.map(q => q.count), backgroundColor: '#e74c3c' }] 
             }
         });
     }
