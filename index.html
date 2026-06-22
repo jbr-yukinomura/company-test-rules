@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; line-height: 1.6; }
-        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .container { max-width: 1300px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; border-bottom: 2px solid #3498db; padding-bottom: 10px; font-size: 20px; position: relative; }
         .admin-link { position: absolute; right: 0; top: -10px; font-size: 12px; color: #bdc3c7; cursor: pointer; text-decoration: none; user-select: none; }
         .info-section { background: #fafafa; border: 1px solid #e0e0e0; padding: 20px; border-radius: 6px; margin-bottom: 25px; font-size: 14px; }
@@ -29,7 +29,7 @@
         .score { font-size: 24px; font-weight: bold; color: #e74c3c; margin: 10px 0; }
         .correct { border: 2px solid #2ecc71; background: #eafaf1; }
         .incorrect { border: 2px solid #e74c3c; background: #fdedec; }
-        .judge-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: white; margin-bottom: 10px; }
+        .judge-badge { inline-block; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: white; margin-bottom: 10px; }
         .badge-ok { background: #2ecc71; }
         .badge-ng { background: #e74c3c; }
         .commentary-box { margin-top: 15px; padding: 12px; background: #fffde7; border-left: 4px solid #f1c40f; font-size: 13px; line-height: 1.5; }
@@ -46,9 +46,9 @@
         .tab-content.active { display: block; }
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
         .card { background: #fafafa; border: 1px solid #ddd; padding: 20px; border-radius: 6px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
-        th, td { border: 1px solid #ddd; padding: 8px 6px; text-align: center; white-space: nowrap; }
-        th { background-color: #f2f2f2; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
+        th, td { border: 1px solid #ddd; padding: 8px 4px; text-align: center; white-space: nowrap; }
+        th { background-color: #f2f2f2; font-size: 11px; font-weight: bold; color: #2c3e50; }
         tr:hover { background-color: #f5f5f5; }
         .text-center { text-align: center; }
         .log-ok { color: #2ecc71; font-weight: bold; }
@@ -63,6 +63,7 @@
         <span class="admin-link" onclick="openAdminModal()">⚙️管理者モード</span>
     </h1>
     
+    <!-- 📋 画面1：案内 ＆ 個人情報入力（大復活！） -->
     <div id="startScreen">
         <div class="info-section">
             <p><strong>【受験者への案内】</strong></p>
@@ -114,6 +115,7 @@
         <button type="button" class="btn-action" onclick="startQuiz()">テストを開始する</button>
     </div>
 
+    <!-- 📝 画面2：クイズ本編 -->
     <div id="quizScreen" style="display: none;">
         <form id="quizForm">
             <div id="quizResultHeader"></div>
@@ -123,6 +125,7 @@
         </form>
     </div>
 
+    <!-- 📊 画面3：管理者ダッシュボード -->
     <div id="adminDashboard" class="admin-dashboard">
         <h2>📊 JBR理解度テスト 管理者ダッシュボード</h2>
         <div class="tab-menu">
@@ -146,7 +149,7 @@
         <div id="tabIndividual" class="tab-content">
             <div class="card">
                 <h3>受講者ログ一覧</h3>
-                <div style="overflow-x: auto; max-width: 100%;">
+                <div style="overflow-x: auto; max-width: 100%; width: 100%;">
                     <table id="logTable">
                         <thead>
                             <tr id="tableHeaderRow">
@@ -156,7 +159,7 @@
                                 <th>得点</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="logTableBody">
                             <tr><td colspan="4" class="text-center">ログを読み込んでいます...</td></tr>
                         </tbody>
                     </table>
@@ -175,11 +178,10 @@
     const ADMIN_PASSWORD = "jbr2453"; 
     const REPO_PATH = "jbr-yukinomura/company-test-rules";
 
-    // 🔒 クラシックトークンの貼り付け
+    // 🔒 トークンの貼り付け
     const TOKEN_PART1 = "ghp_seAvsPGZIxQxaLz6Hc"; 
     const TOKEN_PART2 = "Qgew3o1I3BH93kB9kk";    
 
-    // 🌐 マスター問題をロード
     fetch('./questions.json?t=' + new Date().getTime())
         .then(response => response.json())
         .then(questions => { allMasterQuestions = questions; })
@@ -195,23 +197,17 @@
 
     function generateQuizSet() {
         if (allMasterQuestions.length === 0) return;
-        
         const shuffledPool = shuffleArray([...allMasterQuestions]);
         const selectedList = [];
         const usedCategories = new Set();
-
         for (let i = 0; i < shuffledPool.length; i++) {
             const q = shuffledPool[i];
             const cat = q.category || "未分類";
-
             if (!usedCategories.has(cat)) {
                 selectedList.push(q);
                 usedCategories.add(cat); 
             }
-
-            if (selectedList.length === 16) {
-                break;
-            }
+            if (selectedList.length === 16) break;
         }
         currentQuizQuestions = shuffleArray(selectedList);
     }
@@ -220,34 +216,25 @@
         const company = document.getElementById('companyName').value.trim();
         const name = document.getElementById('userName').value.trim();
         const agree = document.getElementById('privacyAgree').value;
-
         if (!company || !name || !agree) {
             alert('必須項目(*)をすべて入力し、個人情報の取り扱いに「同意する」を選択してください。');
             return;
         }
-
         generateQuizSet();
-
         document.getElementById('startScreen').style.display = 'none';
         document.getElementById('quizScreen').style.display = 'block';
-
         document.getElementById('quizResultHeader').innerHTML = '';
         document.getElementById('quizResultFooter').innerHTML = '';
         const container = document.getElementById('quizContainer');
         container.innerHTML = ''; 
-        
         currentQuizQuestions.forEach((q, index) => {
             const quizBox = document.createElement('div');
             quizBox.className = 'quiz-box';
             quizBox.id = `box_${index}`;
-            
-            const displayCategory = q.category || '未分類';
-            
             const titleEl = document.createElement('div');
             titleEl.className = 'quiz-title';
-            titleEl.innerText = `Q${index + 1}. [${displayCategory}] ${q.title}`;
+            titleEl.innerText = `Q${index + 1}. [${q.category || '未分類'}] ${q.title}`;
             quizBox.appendChild(titleEl);
-            
             const shuffledChoices = shuffleArray([...q.choices]);
             shuffledChoices.forEach(choice => {
                 const label = document.createElement('label');
@@ -272,23 +259,15 @@
         let score = 0;
         document.getElementById('mainTitle').innerText = '理解度テスト 結果・解説';
         document.getElementById('submitBtn').style.display = 'none';
-        
         const resultMapping = {};
-        
         currentQuizQuestions.forEach((q, index) => {
             const quizBox = document.getElementById(`box_${index}`);
             const selected = document.querySelector(`input[name="question_${index}"]:checked`);
             const userAnswer = selected ? selected.value : "未回答";
             const isCorrect = (userAnswer === q.correctAnswer);
             if (isCorrect) score++;
-            
             resultMapping[q.id] = isCorrect ? '〇' : '×';
-            
             quizBox.className = `quiz-box ${isCorrect ? 'correct' : 'incorrect'}`;
-            
-            const oldResult = quizBox.querySelector('.result-detail-box');
-            if (oldResult) oldResult.remove();
-
             const resultDiv = document.createElement('div');
             resultDiv.className = 'result-detail-box';
             resultDiv.style.marginTop = '15px';
@@ -301,15 +280,10 @@
             quizBox.appendChild(resultDiv);
         });
 
-        // 💡 Q1〜Q54までの全結果配列を作って送信形式を維持
         const finalResultsArray = [];
         for (let i = 1; i <= 54; i++) {
             const key = "Q" + i;
-            if (resultMapping[key]) {
-                finalResultsArray.push(`${key}:${resultMapping[key]}`);
-            } else {
-                finalResultsArray.push(`${key}:-`);
-            }
+            finalResultsArray.push(`${key}:${resultMapping[key] || '-'}`);
         }
 
         const logPayload = {
@@ -321,7 +295,6 @@
         };
 
         const secureToken = TOKEN_PART1.trim() + TOKEN_PART2.trim();
-
         fetch(`https://api.github.com/repos/${REPO_PATH}/issues`, {
             method: 'POST',
             headers: {
@@ -336,27 +309,15 @@
         }).catch(err => console.error('ログ送信エラー:', err));
 
         const header = document.getElementById('quizResultHeader');
-        header.innerHTML = `
-            <div class="result-header">
-                <h2>採点完了</h2>
-                <div class="score">${currentQuizQuestions.length}問中 ${score}問 正解！</div>
-                <p>間違えた部分の解説をよく確認してください。</p>
-            </div>
-        `;
-
+        header.innerHTML = `<div class="result-header"><h2>採点完了</h2><div class="score">${currentQuizQuestions.length}問中 ${score}問 正解！</div></div>`;
         const footer = document.getElementById('quizResultFooter');
         footer.innerHTML = ''; 
         const retryBtn = document.createElement('button');
         retryBtn.type = 'button';
         retryBtn.className = 'btn-retry';
-        retryBtn.innerText = 'もう一度受験する（新しい問題にチャレンジ）';
-        retryBtn.onclick = function() {
-            document.getElementById('startScreen').style.display = 'block';
-            document.getElementById('quizScreen').style.display = 'none';
-            document.getElementById('mainTitle').innerText = 'JBR加入前スタッフ用理解度テスト（作業編）';
-        };
+        retryBtn.innerText = 'もう一度受験する';
+        retryBtn.onclick = function() { location.reload(); };
         footer.appendChild(retryBtn);
-
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
@@ -377,7 +338,6 @@
                     .filter(i => i.title.startsWith('LOG:'))
                     .map(i => { try { return JSON.parse(i.body); } catch(e) { return null; } })
                     .filter(l => l !== null);
-                
                 renderDashboard(logs);
             });
     }
@@ -393,7 +353,6 @@
     let weakQuestionsChartInstance = null;
 
     function renderDashboard(logs) {
-        // ① 全マスターデータから、存在するユニークなカテゴリ（16種類）を抽出してヘッダー列を動的生成
         const categories = [];
         allMasterQuestions.forEach(q => {
             const cat = q.category || '未分類';
@@ -401,7 +360,6 @@
         });
         categories.sort();
 
-        // テーブルの1行目（ヘッダー）を綺麗に作り直す
         const headerRow = document.getElementById('tableHeaderRow');
         headerRow.innerHTML = '<th>日時</th><th>会社名</th><th>氏名</th><th>得点</th>';
         categories.forEach(cat => {
@@ -410,10 +368,10 @@
             headerRow.appendChild(th);
         });
 
-        const tbody = document.querySelector('#logTable tbody');
+        const tbody = document.getElementById('logTableBody');
         tbody.innerHTML = '';
         if(logs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="${4 + categories.length}" class="text-center">回答ログはまだありません。</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${4 + categories.length}">回答ログはありません。</td></tr>`;
             return;
         }
 
@@ -422,7 +380,6 @@
         allMasterQuestions.forEach(q => { questionWrongMap[q.id] = { title: q.title, count: 0 }; });
 
         logs.forEach(log => {
-            // 💡 各行（各受講者）のデータをセルにばらす
             const rowDataMap = {};
             const pairs = log.results.split(',');
             
@@ -430,7 +387,7 @@
                 const parts = pair.split(':');
                 if(parts.length !== 2) return;
                 const qIdStr = parts[0];
-                const status = parts[1]; // 〇, ×, -
+                const status = parts[1]; 
                 
                 if (status === '-') return;
                 const isCorrect = (status === '〇');
@@ -438,8 +395,6 @@
                 const targetQ = allMasterQuestions.find(m => String(m.id) === qIdStr);
                 if(targetQ) {
                     const displayCategory = targetQ.category || '未分類';
-                    
-                    // ⭕️ 【超重要】このカテゴリの列には「問題番号:結果」を表示
                     rowDataMap[displayCategory] = `${qIdStr}:${status}`;
 
                     if (!categoryStats[displayCategory]) categoryStats[displayCategory] = { correct: 0, total: 0 };
@@ -452,30 +407,26 @@
                 }
             });
 
-            // 行（tr）を生成して基本項目を差し込む
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${log.timestamp}</td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td>`;
             
-            // ⭕️ 16個のカテゴリ順にループを回して、該当問題の〇✖をカラムに綺麗に並べる
             categories.forEach(cat => {
                 const td = document.createElement('td');
                 if (rowDataMap[cat]) {
-                    td.innerText = rowDataMap[cat]; // 例「Q1:〇」
+                    td.innerText = rowDataMap[cat]; 
                     if (rowDataMap[cat].includes('〇')) td.className = 'log-ok';
                     if (rowDataMap[cat].includes('×')) td.className = 'log-ng';
                 } else {
-                    td.innerText = '-'; // 出題されなかったカテゴリはハイフン
+                    td.innerText = '-';
                     td.style.color = '#ccc';
                 }
                 tr.appendChild(td);
             });
-            
             tbody.appendChild(tr);
         });
 
         if (categoryChartInstance) categoryChartInstance.destroy();
         if (weakQuestionsChartInstance) weakQuestionsChartInstance.destroy();
-
         const catLabels = Object.keys(categoryStats);
         const catData = catLabels.map(l => Math.round((categoryStats[l].correct / categoryStats[l].total) * 100));
         categoryChartInstance = new Chart(document.getElementById('categoryChart'), {
@@ -483,7 +434,6 @@
             data: { labels: catLabels, datasets: [{ label: '正答率 (%)', data: catData, backgroundColor: '#3498db' }] },
             options: { scales: { y: { min: 0, max: 100 } } }
         });
-
         const sortedQuestions = Object.values(questionWrongMap).sort((a,b) => b.count - a.count).slice(0, 5);
         weakQuestionsChartInstance = new Chart(document.getElementById('weakQuestionsChart'), {
             type: 'bar',
