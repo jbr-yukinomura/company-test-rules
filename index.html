@@ -22,8 +22,6 @@
         .choice-label input { margin-right: 10px; vertical-align: middle; }
         .btn-action { display: block; width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 20px; }
         .btn-action:hover { background: #2980b9; }
-        .btn-retry { display: block; width: 100%; padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 20px; text-align: center; }
-        .btn-retry:hover { background: #27ae60; }
         .loading { text-align: center; font-size: 16px; color: #7f8c8d; padding: 40px 0; }
         .result-header { text-align: center; background: #e8f4fd; padding: 20px; border-radius: 6px; margin-bottom: 30px; }
         .score { font-size: 24px; font-weight: bold; color: #e74c3c; margin: 10px 0; }
@@ -34,6 +32,8 @@
         .badge-ng { background: #e74c3c; }
         .commentary-box { margin-top: 15px; padding: 12px; background: #fffde7; border-left: 4px solid #f1c40f; font-size: 13px; line-height: 1.5; }
         .your-answer { font-size: 13px; margin-bottom: 5px; text-align: left; }
+        .btn-retry { display: block; width: 100%; padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 20px; text-align: center; }
+        .btn-retry:hover { background: #27ae60; }
     </style>
 </head>
 <body>
@@ -41,11 +41,10 @@
 <div class="container">
     <h1 id="mainTitle">JBR加入前スタッフ用理解度テスト（作業編）</h1>
     
-    <!-- 📋 画面1：案内 ＆ 個人情報入力 -->
     <div id="startScreen">
         <div class="info-section">
             <p><strong>【受験者への案内】</strong></p>
-            <p>１．本テストは、JBR of ビジネスを円滑に進めていただく上で、大変重要なルールや知識を網羅しております。恐れ入りますが、あらかじめ各種マニュアルをご一読いただいた上で、ご受験をお願いいたします。</p>
+            <p>１．本テストは、JBRのビジネスを円滑に進めていただく上で、大変重要なルールや知識を網羅しております。恐れ入りますが、あらかじめ各種マニュアルをご一読いただいた上で、ご受験をお願いいたします。</p>
             <p>２．本テストで16点（満点）を獲得いただくことが、皆様とJBRが信頼できるビジネスパートナーとして歩みを共にするための基準となっております。皆様のご理解とご協力を心よりお願い申し上げます。<br>
             なお、16点（満点）を獲得いただくまで、何度でも受験が可能です。</p>
             <p>※問題数は全16問から構成され、<u>所要時間は概ね10分程度</u>の内容となっております。</p>
@@ -74,7 +73,7 @@
             <p>1. 受験者の識別、および本人確認のため<br>
             2. マニュアル理解度の習得状況の把握、および社内研修・教育への活用のため<br>
             3. テストの運営、管理、および結果のご連絡のため</p>
-            <p>取得した個人情報は、当社のプライバシーポールおよび情報セキュリティ方針にのっとり、適切かつ厳重に管理いたします。法令に基づく場合を除き、事前の同意なく第三者に提供することはありません。</p>
+            <p>取得した個人情報は、当社のプライバシーポリシーおよび情報セキュリティ方針にのっとり、適切かつ厳重に管理いたします。法令に基づく場合を除き、事前の同意なく第三者に提供することはありません。</p>
             <p>
                 <a href="https://example.com/privacy" target="_blank" style="color: #3498db; text-decoration: underline; font-weight: bold; margin-right: 15px;">プライバシーポリシー</a>
                 <a href="https://example.com/security" target="_blank" style="color: #3498db; text-decoration: underline; font-weight: bold;">情報セキュリティ方針</a>
@@ -93,7 +92,6 @@
         <button type="button" class="btn-action" onclick="startQuiz()">テストを開始する</button>
     </div>
 
-    <!-- 📝 画面2：クイズ本編 -->
     <div id="quizScreen" style="display: none;">
         <form id="quizForm">
             <div id="quizContainer" class="loading">問題を読み込んでいます...</div>
@@ -170,34 +168,16 @@
         document.getElementById('mainTitle').innerText = '理解度テスト 結果・解説';
         document.getElementById('submitBtn').style.display = 'none';
         
-       // 🚀 【GitHub共通CSV一覧保存仕様】
         // 💡 一番最初に取得した、あなたの「ghp_」から始まるトークンをここに貼り付けてください
-        const GITHUB_TOKEN = "【あなたのGitHubの個人アクセストークン（ghp_...）】"; 
-
+        const GITHUB_TOKEN = "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"; 
+        
         const logData = {
             timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
             company: document.getElementById('companyName').value.trim(),
             name: document.getElementById('userName').value.trim(),
-            score: `${score} / ${loadedQuestions.length}`,
-            results: loadedQuestions.map((q, idx) => {
-                const sel = document.querySelector(`input[name="question_${idx}"]:checked`);
-                return (sel && sel.value === q.correctAnswer) ? "〇" : "×";
-            }).join(',')
+            score: "",
+            results: []
         };
-
-        // GitHubのロボット（Actions）に「ログが来たから追記して！」と合図を送る処理
-        fetch('https://api.github.com/repos/jbr-yukinomura/company-test-rules/dispatches', {
-            method: 'POST',
-            headers: {
-                'Authorization': `token ${GITHUB_TOKEN}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                event_type: 'submit-log',
-                client_payload: logData
-            })
-        }).catch(err => console.error('GitHubログ送信エラー:', err));
 
         loadedQuestions.forEach((q, index) => {
             const quizBox = document.getElementById(`box_${index}`);
@@ -224,14 +204,15 @@
             quizBox.appendChild(resultDiv);
         });
         
-        // 正しいスコアをセットし直してGASに送信
+        // スコアを最終セット
         logData.score = `${score} / ${loadedQuestions.length}`;
-
-        // GitHubのロボット宛ての通信
+        
+        // 🤖 GitHubロボットへのデータ送信（余計なゴミ文字をトリムして綺麗にします）
+        const cleanToken = GITHUB_TOKEN.replace(/[\s\u200B-\u200D\uFEFF]/g, '');
         fetch('https://api.github.com/repos/jbr-yukinomura/company-test-rules/dispatches', {
             method: 'POST',
             headers: {
-                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Authorization': 'token ' + cleanToken,
                 'Accept': 'application/vnd.github.v3+json',
                 'Content-Type': 'application/json'
             },
@@ -242,7 +223,7 @@
                     company: logData.company,
                     name: logData.name,
                     score: logData.score,
-                    results: logData.results // ←すでに文字になっているので、.join(',')を消してスッキリさせました！
+                    results: logData.results.join(',')
                 }
             })
         }).catch(err => console.error('GitHubログ送信エラー:', err));
@@ -252,28 +233,27 @@
         header.innerHTML = `
             <h2>採点完了</h2>
             <div class="score">${loadedQuestions.length}問中 ${score}問 正解！</div>
-            <p>間違えた部分の解説（K列）をよく確認してください。</p>
+            <p>間違えた部分の解説をよく確認してください。</p>
         `;
         container.insertBefore(header, container.firstChild);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        // 🚀 【追加】「もう一度受験する」ボタンを結果画面の最下部に追加
+
+        // 「もう一度受験する」ボタンの追加
         const retryBtn = document.createElement('button');
         retryBtn.type = 'button';
         retryBtn.className = 'btn-retry';
         retryBtn.innerText = 'もう一度受験する（最初の画面に戻る）';
         retryBtn.onclick = function() {
-            // 画面を最初の入力画面に戻す
             document.getElementById('startScreen').style.display = 'block';
             document.getElementById('quizScreen').style.display = 'none';
             document.getElementById('mainTitle').innerText = 'JBR加入前スタッフ用理解度テスト（作業編）';
-            
-            // 💡【超重要】再受験のたびに問題が裏でシャッフルされるよう、データを再取得する
             fetch('./questions.json?t=' + new Date().getTime())
                 .then(response => response.json())
                 .then(questions => { loadedQuestions = questions; })
-                .catch(err => { console.error('再シャッフルデータの読み込みに失敗', err); });
+                .catch(err => { console.error('再読み込み失敗', err); });
         };
         container.appendChild(retryBtn);
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 </script>
 </body>
