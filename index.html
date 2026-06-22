@@ -32,8 +32,11 @@
         .badge-ng { background: #e74c3c; }
         .commentary-box { margin-top: 15px; padding: 12px; background: #fffde7; border-left: 4px solid #f1c40f; font-size: 13px; line-height: 1.5; }
         .your-answer { font-size: 13px; margin-bottom: 5px; text-align: left; }
-        .btn-retry { display: block; width: 100%; padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 20px; text-align: center; }
-        .btn-retry:hover { background: #27ae60; }
+        .btn-retry { display: block; width: 100%; padding: 15px; background: #95a5a6; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 20px; text-align: center; }
+        .btn-retry:hover { background: #7f8c8d; }
+        .btn-report { display: block; width: 100%; padding: 15px; background: #e67e22; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 20px; text-align: center; animation: pulse 2s infinite; }
+        .btn-report:hover { background: #d35400; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(230,126,34,0.7); } 70% { box-shadow: 0 0 0 10px rgba(230,126,34,0); } 100% { box-shadow: 0 0 0 0 rgba(230,126,34,0); } }
     </style>
 </head>
 <body>
@@ -168,8 +171,8 @@
         document.getElementById('mainTitle').innerText = '理解度テスト 結果・解説';
         document.getElementById('submitBtn').style.display = 'none';
         
-        // 💡 一番最初に取得した、あなたの「ghp_」から始まるトークンをここに貼り付けてください
-        const GITHUB_TOKEN = "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"; 
+        // 💡 【ここ！】あなたの会社の、結果メールを受け取りたいアドレスに書き換えてください！
+        const REPORT_EMAIL = "yuki_nomura@jbr.co.jp"; 
         
         const logData = {
             timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
@@ -204,38 +207,39 @@
             quizBox.appendChild(resultDiv);
         });
         
-        // スコアを最終セット
         logData.score = `${score} / ${loadedQuestions.length}`;
-        
-        // 🤖 GitHubロボットへのデータ送信（余計なゴミ文字をトリムして綺麗にします）
-        const cleanToken = GITHUB_TOKEN.replace(/[\s\u200B-\u200D\uFEFF]/g, '');
-        fetch('https://api.github.com/repos/jbr-yukinomura/company-test-rules/dispatches', {
-            method: 'POST',
-            headers: {
-                'Authorization': 'token ' + cleanToken,
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                event_type: 'submit-log',
-                client_payload: {
-                    timestamp: logData.timestamp,
-                    company: logData.company,
-                    name: logData.name,
-                    score: logData.score,
-                    results: logData.results.join(',')
-                }
-            })
-        }).catch(err => console.error('GitHubログ送信エラー:', err));
 
+        // 📝 結果画面の最上部に「採点完了ヘッダー」を差し込む
         const header = document.createElement('div');
         header.className = 'result-header';
         header.innerHTML = `
             <h2>採点完了</h2>
             <div class="score">${loadedQuestions.length}問中 ${score}問 正解！</div>
-            <p>間違えた部分の解説をよく確認してください。</p>
+            <p style="color:#d35400; font-weight:bold; font-size:15px;">⚠️ まだ受講は完了していません！<br>下にあるオレンジ色のボタンを押して、必ず結果を報告してください。</p>
         `;
         container.insertBefore(header, container.firstChild);
+
+        // ✉️ メール送信用リンクを生成する処理
+        const mailSubject = encodeURIComponent(`【理解度テスト結果確認】${logData.company}＿${logData.name}（${logData.score}）`);
+        const csvLine = `${logData.timestamp},${logData.company},${logData.name},${logData.score},${logData.results.join(',')}`;
+        const mailBody = encodeURIComponent(
+            `JBR加入前スタッフ用理解度テスト（作業編）の受験が完了しました。\n` +
+            `以下の【データ行】を消さずに、そのままメールを送信してください。\n\n` +
+            `----------------------------------------\n` +
+            `【受講データ行】※事務局での集計に使用します\n` +
+            `${csvLine}\n` +
+            `----------------------------------------\n\n` +
+            `会社名: ${logData.company}\n` +
+            `受講者氏名: ${logData.name}\n` +
+            `得点: ${logData.score}\n`
+        );
+
+        // 🟠 「メールで結果を送信する」報告ボタンを結果画面の一番下に追加
+        const reportBtn = document.createElement('a');
+        reportBtn.className = 'btn-report';
+        reportBtn.href = `mailto:${REPORT_EMAIL}?subject=${mailSubject}&body=${mailBody}`;
+        reportBtn.innerText = '✉ 採点結果を会社へ報告する（受講完了）';
+        container.appendChild(reportBtn);
 
         // 「もう一度受験する」ボタンの追加
         const retryBtn = document.createElement('button');
