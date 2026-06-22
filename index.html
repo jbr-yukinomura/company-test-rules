@@ -3,76 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>社内理解度テスト</title>
+    <title>JBR加入前スタッフ用理解度テスト（作業編）</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
         .container { max-width: 700px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        .user-info { background: #e8f4fd; padding: 15px; border-radius: 6px; margin-bottom: 30px; }
-        .user-info label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .user-info input { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 10px; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; border-bottom: 2px solid #3498db; padding-bottom: 10px; font-size: 20px; }
         .quiz-box { margin-bottom: 25px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 6px; background-color: #fafafa; }
-        .quiz-title { font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #2c3e50; line-height: 1.5; }
-        .choice-label { display: block; padding: 10px; margin: 5px 0; background: white; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .quiz-title { font-size: 15px; font-weight: bold; margin-bottom: 12px; color: #2c3e50; line-height: 1.5; }
+        .choice-label { display: block; padding: 10px; margin: 5px 0; background: white; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; transition: 0.2s; font-size: 14px; }
         .choice-label:hover { background: #ebf5fb; border-color: #3498db; }
         .choice-label input { margin-right: 10px; }
-        .btn-submit { display: block; width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 30px; }
+        .btn-submit { display: block; width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 30px; }
         .btn-submit:hover { background: #2980b9; }
-        .loading { text-align: center; font-size: 18px; color: #7f8c8d; padding: 40px 0; }
+        .loading { text-align: center; font-size: 16px; color: #7f8c8d; padding: 40px 0; }
+        
+        /* 結果・解説画面用スタイル */
+        .result-header { text-align: center; background: #e8f4fd; padding: 20px; border-radius: 6px; margin-bottom: 30px; }
+        .score { font-size: 24px; font-weight: bold; color: #e74c3c; margin: 10px 0; }
+        .correct { border: 2px solid #2ecc71; background: #eafaf1; }
+        .incorrect { border: 2px solid #e74c3c; background: #fdedec; }
+        .judge-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: white; margin-bottom: 10px; }
+        .badge-ok { background: #2ecc71; }
+        .badge-ng { background: #e74c3c; }
+        .commentary-box { margin-top: 15px; padding: 12px; background: #fffde7; border-left: 4px solid #f1c40f; font-size: 13px; line-height: 1.5; }
+        .your-answer { font-size: 13px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>社内理解度テスト</h1>
+    <h1 id="mainTitle">JBR加入前スタッフ用理解度テスト（作業編）</h1>
     
-    <div class="user-info">
-        <label for="userName">氏名を入力してください</label>
-        <input type="text" id="userName" placeholder="例：山田 太郎" required>
-    </div>
-
     <form id="quizForm">
         <div id="quizContainer" class="loading">問題を読み込んでいます...</div>
-        <button type="submit" id="submitBtn" class="btn-submit" style="display:none;">回答を送信する</button>
+        <button type="submit" id="submitBtn" class="btn-submit" style="display:none;">回答を終了して採点する</button>
     </form>
 </div>
 
 <script>
-    // 💡 あなたのGoogleフォームの情報をここに設定します
-    const FORM_URL = "https://docs.google.com/forms/d/e/【あなたのフォームID】/formResponse";
-    const NAME_ENTRY_ID = "entry.【氏名入力欄のID】";
-    
-    // 💡 各問題の回答を受け取るフォーム側のentry.ID（本来は固定の16個）
-    // 例：[ "entry.111111", "entry.222222", "entry.333333", ... ]
-    const QUESTION_ENTRY_IDS = [
-        "entry.100001", "entry.100002", "entry.100003", "entry.100004",
-        "entry.100005", "entry.100006", "entry.100007", "entry.100008",
-        "entry.100009", "entry.100010", "entry.100011", "entry.100012",
-        "entry.100013", "entry.100014", "entry.100015", "entry.100016"
-    ];
-
     let loadedQuestions = [];
 
-    // 🌐 GASが吐き出した最新の問題データをGitHubから読み込む
-    // キャッシュを防ぐためにタイムスタンプを付与します
-    fetch('questions.json?t=' + new Date().getTime())
+    // 🌐 GASが吐き出した最新の問題データを読み込む
+    fetch('./questions.json?t=' + new Date().getTime())
         .then(response => response.json())
         .then(questions => {
             loadedQuestions = questions;
             const container = document.getElementById('quizContainer');
-            container.innerHTML = ''; // ローディング消去
+            container.innerHTML = ''; 
             
             questions.forEach((q, index) => {
                 const quizBox = document.createElement('div');
                 quizBox.className = 'quiz-box';
+                quizBox.id = `box_${index}`;
                 
-                // 問題タイトル（「Q1. 問題文」の形にする）
                 const titleEl = document.createElement('div');
                 titleEl.className = 'quiz-title';
                 titleEl.innerText = `${q.id}. ${q.title}`;
                 quizBox.appendChild(titleEl);
                 
-                // 選択肢をループ生成
                 q.choices.forEach(choice => {
                     const label = document.createElement('label');
                     label.className = 'choice-label';
@@ -91,53 +79,65 @@
                 container.appendChild(quizBox);
             });
             
-            // 問題が読み終わったら送信ボタンを表示
             document.getElementById('submitBtn').style.display = 'block';
         })
         .catch(err => {
-            document.getElementById('quizContainer').innerText = '問題の読み込みに失敗しました。';
+            document.getElementById('quizContainer').innerText = '問題の読み込みに失敗しました。GASで一度問題を出力したかご確認ください。';
             console.error(err);
         });
 
-    // 🚀 回答が送信された時の処理（Googleフォームの裏口へデータを叩き込む）
+    // 🚀 採点ボタンが押された時の処理（その場で答え合わせ画面を作る）
     document.getElementById('quizForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const name = document.getElementById('userName').value;
-        if(!name) { alert('氏名を入力してください。'); return; }
+        let score = 0;
+        const container = document.getElementById('quizContainer');
         
-        // フォームデータを作成
-        const formData = new FormData();
-        formData.append(NAME_ENTRY_ID, name);
+        // タイトルとボタンを消去・変更
+        document.getElementById('mainTitle').innerText = '理解度テスト 結果・解説';
+        document.getElementById('submitBtn').style.display = 'none';
         
-        // 各問題の回答を回収してセット
+        // 各問題を判定
         loadedQuestions.forEach((q, index) => {
+            const quizBox = document.getElementById(`box_${index}`);
             const selected = document.querySelector(`input[name="question_${index}"]:checked`);
-            if (selected) {
-                formData.append(QUESTION_ENTRY_IDS[index], selected.value);
-            }
+            const userAnswer = selected ? selected.value : "未回答";
+            const isCorrect = (userAnswer === q.correctAnswer);
+            
+            if (isCorrect) score++;
+            
+            // 画面の見た目を〇×用に書き換える
+            quizBox.className = `quiz-box ${isCorrect ? 'correct' : 'incorrect'}`;
+            
+            // ラジオボタンを選択不可にする
+            const radios = quizBox.querySelectorAll('input[type="radio"]');
+            radios.forEach(r => r.disabled = true);
+            
+            // 判定バッジと解説を追加
+            const resultDiv = document.createElement('div');
+            resultDiv.style.marginTop = '15px';
+            
+            resultDiv.innerHTML = `
+                <span class="judge-badge ${isCorrect ? 'badge-ok' : 'badge-ng'}">${isCorrect ? '正解 〇' : '不正解 ×'}</span>
+                <div class="your-answer"><strong>あなたの回答：</strong> ${userAnswer}</div>
+                <div class="your-answer"><strong>正しい正解：</strong> ${q.correctAnswer}</div>
+                ${q.commentary ? `<div class="commentary-box"><strong>💡解説：</strong><br>${q.commentary.replace(/\n/g, '<br>')}</div>` : ''}
+            `;
+            quizBox.appendChild(resultDiv);
         });
         
-        // ボタンを無効化して多重送信防止
-        document.getElementById('submitBtn').disabled = true;
-        document.getElementById('submitBtn').innerText = '送信中...';
-
-        // fetchを使ってGoogleフォームの裏口にPOST送信する
-        // ※Googleフォームの仕様上、CORSエラー（不透過）が出ますが、データ自体はサーバーに100%届きます。
-        fetch(FORM_URL, {
-            method: 'POST',
-            body: formData,
-            mode: 'no-cors'
-        }).then(() => {
-            alert('テストの回答を送信しました。お疲れ様でした！');
-            // 💡 送信完了画面に切り替える、または画面をクリア
-            document.body.innerHTML = '<div class="container" style="text-align:center; padding:50px 0;"><h1>送信完了</h1><p>テスト回答が正常に記録されました。このタブを閉じて終了してください。</p></div>';
-        }).catch(error => {
-            alert('送信中にエラーが発生しました。インターネット環境をお確かめの上、再度お試しください。');
-            document.getElementById('submitBtn').disabled = false;
-            document.getElementById('submitBtn').innerText = '回答を送信する';
-            console.error('Error:', error);
-        });
+        // 画面最上部に総合点数を表示
+        const header = document.createElement('div');
+        header.className = 'result-header';
+        header.innerHTML = `
+            <h2>採点完了</h2>
+            <div class="score">${loadedQuestions.length}問中 ${score}問 正解！</div>
+            <p>間違えた部分の解説（K列）をよく確認してください。</p>
+        `;
+        container.insertBefore(header, container.firstChild);
+        
+        // 最上部へスクロール
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 </script>
 </body>
