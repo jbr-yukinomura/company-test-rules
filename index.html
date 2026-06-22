@@ -152,7 +152,7 @@
                                 <th>会社名</th>
                                 <th>氏名</th>
                                 <th>得点</th>
-                                <th>詳細1〜16問</th>
+                                <th style="min-width: 400px;">詳細（Q1〜Q54の通し結果）</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -170,13 +170,13 @@
     let allMasterQuestions = []; 
     let currentQuizQuestions = []; 
     
-    // 💡 【修正！】セキュリティと使いやすさを両立した暗号化設定
-    const ADMIN_PASSWORD = "jbr2453"; // ⭕️ 社内メンバーに共有する簡単なパスワード（自由に変えてOK）
+    // 💡 設定
+    const ADMIN_PASSWORD = "jbr2453"; // 社内共有用パスワード
     const REPO_PATH = "jbr-yukinomura/company-test-rules";
 
-    // 🔒 クラシックトークン(ghp_...)を半分に分けて書いて、自動爆破センサーを完全に無力化します
-    const TOKEN_PART1 = "ghp_seAvsPGZIxQxaLz6Hc"; // 👈 トークンの前半半分を貼り付け
-    const TOKEN_PART2 = "Qgew3o1I3BH93kB9kk";    // 👈 トークンの後半の残りを貼り付け
+    // 🔒 クラシックトークンの貼り付け
+    const TOKEN_PART1 = "ghp_seAvsPGZIxQxaLz6Hc"; // 前半半分
+    const TOKEN_PART2 = "Qgew3o1I3BH93kB9kk";    // 後半半分
 
     // 🌐 マスター問題をロード
     fetch('./questions.json?t=' + new Date().getTime())
@@ -272,7 +272,9 @@
         document.getElementById('mainTitle').innerText = '理解度テスト 結果・解説';
         document.getElementById('submitBtn').style.display = 'none';
         
-        const resultsArray = [];
+        // 💡 【大改造】出題された順ではなく、Q1〜Q54の固定マップを作成して集計します
+        const resultMapping = {};
+        
         currentQuizQuestions.forEach((q, index) => {
             const quizBox = document.getElementById(`box_${index}`);
             const selected = document.querySelector(`input[name="question_${index}"]:checked`);
@@ -280,7 +282,8 @@
             const isCorrect = (userAnswer === q.correctAnswer);
             if (isCorrect) score++;
             
-            resultsArray.push(`${q.id}:${isCorrect ? '〇' : '×'}`);
+            // Q1〜Q54のIDをキーにして結果を記録
+            resultMapping[q.id] = isCorrect ? '〇' : '×';
             
             quizBox.className = `quiz-box ${isCorrect ? 'correct' : 'incorrect'}`;
             
@@ -299,15 +302,25 @@
             quizBox.appendChild(resultDiv);
         });
 
+        // 💡 【大改造】Q1からQ54まで綺麗に順番に並んだ文字列を生成する
+        const finalResultsArray = [];
+        for (let i = 1; i <= 54; i++) {
+            const key = "Q" + i;
+            if (resultMapping[key]) {
+                finalResultsArray.push(`${key}:${resultMapping[key]}`);
+            } else {
+                finalResultsArray.push(`${key}:-`); // 出題されなかった問題は「-」で固定
+            }
+        }
+
         const logPayload = {
             timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
             company: document.getElementById('companyName').value.trim(),
             name: document.getElementById('userName').value.trim(),
             score: `${score}/${currentQuizQuestions.length}`,
-            results: resultsArray.join(',')
+            results: finalResultsArray.join(',') // 綺麗にQ1〜Q54が並んだログが保存されます！
         };
 
-        // 🤖 分割したトークンを、プログラム内部だけで安全にガッチャンコして送信！
         const secureToken = TOKEN_PART1.trim() + TOKEN_PART2.trim();
 
         fetch(`https://api.github.com/repos/${REPO_PATH}/issues`, {
@@ -394,7 +407,7 @@
 
         logs.forEach(log => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${log.timestamp}</td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td><td>${log.results}</td>`;
+            tr.innerHTML = `<td>${log.timestamp}</td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td><td><div style="max-width:450px; word-break:break-all; font-family:monospace; font-size:11px;">${log.results}</div></td>`;
             tbody.appendChild(tr);
 
             const pairs = log.results.split(',');
@@ -402,7 +415,10 @@
                 const parts = pair.split(':');
                 if(parts.length !== 2) return;
                 const qIdStr = parts[0];
-                const isCorrect = (parts[1] === '〇');
+                const status = parts[1]; // 〇, ×, -
+                
+                if (status === '-') return; // 解いていない問題は集計から除外
+                const isCorrect = (status === '〇');
 
                 const targetQ = allMasterQuestions.find(m => String(m.id) === qIdStr);
                 if(targetQ) {
