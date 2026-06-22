@@ -170,15 +170,34 @@
         document.getElementById('mainTitle').innerText = '理解度テスト 結果・解説';
         document.getElementById('submitBtn').style.display = 'none';
         
-        // 💡 【ここ！】発行した長いウェブアプリURL（https://script.google.com/...）に書き換えてください！
-        const LOG_API_URL = "https://script.google.com/a/macros/jbr.co.jp/s/AKfycbxnk6RwmsEbOqw5vaZm1Ix1lbt2k8bSQFfHUULLZiznAWaTCwgR94fZDJFKpebsYN_g/exec"; 
-        
+       // 🚀 【GitHub共通CSV一覧保存仕様】
+        // 💡 一番最初に取得した、あなたの「ghp_」から始まるトークンをここに貼り付けてください
+        const GITHUB_TOKEN = "【あなたのGitHubの個人アクセストークン（ghp_...）】"; 
+
         const logData = {
+            timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
             company: document.getElementById('companyName').value.trim(),
             name: document.getElementById('userName').value.trim(),
             score: `${score} / ${loadedQuestions.length}`,
-            results: []
+            results: loadedQuestions.map((q, idx) => {
+                const sel = document.querySelector(`input[name="question_${idx}"]:checked`);
+                return (sel && sel.value === q.correctAnswer) ? "〇" : "×";
+            }).join(',')
         };
+
+        // GitHubのロボット（Actions）に「ログが来たから追記して！」と合図を送る処理
+        fetch('https://api.github.com/repos/jbr-yukinomura/company-test-rules/dispatches', {
+            method: 'POST',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                event_type: 'submit-log',
+                client_payload: logData
+            })
+        }).catch(err => console.error('GitHubログ送信エラー:', err));
 
         loadedQuestions.forEach((q, index) => {
             const quizBox = document.getElementById(`box_${index}`);
@@ -207,11 +226,26 @@
         
         // 正しいスコアをセットし直してGASに送信
         logData.score = `${score} / ${loadedQuestions.length}`;
-        fetch(LOG_API_URL, {
+
+        // 新しいGitHubのロボット宛ての通信
+        fetch('https://api.github.com/repos/jbr-yukinomura/company-test-rules/dispatches', {
             method: 'POST',
-            body: JSON.stringify(logData),
-            mode: 'no-cors'
-        }).catch(err => console.error('ログ送信エラー:', err));
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                event_type: 'submit-log',
+                client_payload: {
+                    timestamp: logData.timestamp,
+                    company: logData.company,
+                    name: logData.name,
+                    score: logData.score,
+                    results: logData.results.join(',') // 〇,×,〇... とカンマで繋ぐ
+                }
+            })
+        }).catch(err => console.error('GitHubログ送信エラー:', err));
 
         const header = document.createElement('div');
         header.className = 'result-header';
