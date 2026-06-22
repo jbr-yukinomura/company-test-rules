@@ -22,6 +22,8 @@
         .choice-label input { margin-right: 10px; vertical-align: middle; }
         .btn-action { display: block; width: 100%; padding: 15px; background: #3498db; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 20px; }
         .btn-action:hover { background: #2980b9; }
+        .btn-retry { display: block; width: 100%; padding: 15px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 20px; text-align: center; }
+        .btn-retry:hover { background: #27ae60; }
         .loading { text-align: center; font-size: 16px; color: #7f8c8d; padding: 40px 0; }
         .result-header { text-align: center; background: #e8f4fd; padding: 20px; border-radius: 6px; margin-bottom: 30px; }
         .score { font-size: 24px; font-weight: bold; color: #e74c3c; margin: 10px 0; }
@@ -220,6 +222,24 @@
         `;
         container.insertBefore(header, container.firstChild);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        // 🚀 【追加】「もう一度受験する」ボタンを結果画面の最下部に追加
+        const retryBtn = document.createElement('button');
+        retryBtn.type = 'button';
+        retryBtn.className = 'btn-retry';
+        retryBtn.innerText = 'もう一度受験する（最初の画面に戻る）';
+        retryBtn.onclick = function() {
+            // 画面を最初の入力画面に戻す
+            document.getElementById('startScreen').style.display = 'block';
+            document.getElementById('quizScreen').style.display = 'none';
+            document.getElementById('mainTitle').innerText = 'JBR加入前スタッフ用理解度テスト（作業編）';
+            
+            // 💡【超重要】再受験のたびに問題が裏でシャッフルされるよう、データを再取得する
+            fetch('./questions.json?t=' + new Date().getTime())
+                .then(response => response.json())
+                .then(questions => { loadedQuestions = questions; })
+                .catch(err => { console.error('再シャッフルデータの読み込みに失敗', err); });
+        };
+        container.appendChild(retryBtn);
     });
 </script>
 </body>
