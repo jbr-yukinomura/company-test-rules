@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; line-height: 1.6; }
-        .container { max-width: 1300px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .container { max-width: 1500px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; border-bottom: 2px solid #3498db; padding-bottom: 10px; font-size: 20px; position: relative; }
         .admin-link { position: absolute; right: 0; top: -10px; font-size: 12px; color: #bdc3c7; cursor: pointer; text-decoration: none; user-select: none; }
         .info-section { background: #fafafa; border: 1px solid #e0e0e0; padding: 20px; border-radius: 6px; margin-bottom: 25px; font-size: 14px; }
@@ -29,7 +29,7 @@
         .score { font-size: 24px; font-weight: bold; color: #e74c3c; margin: 10px 0; }
         .correct { border: 2px solid #2ecc71; background: #eafaf1; }
         .incorrect { border: 2px solid #e74c3c; background: #fdedec; }
-        .judge-badge { inline-block; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: white; margin-bottom: 10px; }
+        .judge-badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: white; margin-bottom: 10px; }
         .badge-ok { background: #2ecc71; }
         .badge-ng { background: #e74c3c; }
         .commentary-box { margin-top: 15px; padding: 12px; background: #fffde7; border-left: 4px solid #f1c40f; font-size: 13px; line-height: 1.5; }
@@ -47,12 +47,19 @@
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
         .card { background: #fafafa; border: 1px solid #ddd; padding: 20px; border-radius: 6px; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
-        th, td { border: 1px solid #ddd; padding: 8px 4px; text-align: center; white-space: nowrap; }
+        th, td { border: 1px solid #ddd; padding: 6px 4px; text-align: center; white-space: nowrap; }
         th { background-color: #f2f2f2; font-size: 11px; font-weight: bold; color: #2c3e50; }
         tr:hover { background-color: #f5f5f5; }
         .text-center { text-align: center; }
-        .log-ok { color: #2ecc71; font-weight: bold; }
-        .log-ng { color: #e74c3c; font-weight: bold; }
+        .score-perfect { color: #2ecc71; font-weight: bold; }
+        .score-warn { color: #e74c3c; font-weight: bold; }
+        .cell-ok { background-color: #f4fbf7; line-height: 1.2; }
+        .cell-ng { background-color: #fff5f5; line-height: 1.2; }
+        .q-num { font-size: 10px; color: #7f8c8d; font-weight: bold; display: block; }
+        .q-status { font-size: 13px; font-weight: bold; }
+        .status-ok { color: #2ecc71; }
+        .status-ng { color: #e74c3c; }
+        .th-q { background-color: #ebf5fb; color: #2980b9; width: 45px; }
     </style>
 </head>
 <body>
@@ -63,30 +70,37 @@
         <span class="admin-link" onclick="openAdminModal()">⚙️管理者モード</span>
     </h1>
     
-    <!-- 📋 画面1：案内 ＆ 個人情報入力（大復活！） -->
+    <!-- 📋 画面1：案内 ＆ 個人情報入力 -->
     <div id="startScreen">
         <div class="info-section">
             <p><strong>【受験者への案内】</strong></p>
-            <p>１．本テストは、JBRのビジネスを円滑に進めていただく上で、大変重要なルールや知識を網羅しております。恐れ入りますが、あらかじめ各種マニュアルをご一読いただいた上で、ご受験をお願いいたします。</p>
+            <p>１．本テストは、JBRのビジネスを円滑に進めていただく上で、大変重要なルールや知識を網羅しております。あらかじめ各種マニュアルをご一読いただいた上で、ご受験をお願いいたします。</p>
             <p>２．本テストで17点（満点）を獲得いただくことが、皆様とJBRが信頼できるビジネスパートナーとして歩みを共にするための基準となっております。皆様のご理解とご協力を心よりお願い申し上げます。<br>
-            なお、17点（満点）を獲得いただくまで、何度でも受験が可能です。</p>
-            <p>※問題数は全17問から構成され、<u>所要時間は概ね10分程度</u>の内容となっております。</p>
+            なお、17点（満点）を獲得いただくまで、何度でも受験が可能です。（※ただし最大3回まで）</p>
+            <p>※問題数は全17問、<u>所要時間は概ね10〜12分程度</u>の内容となっております。</p>
             <p>（※ご注意）<br>
             本テストは、再受験のたびに問題や選択肢がランダムに入れ替わります。</p>
         </div>
 
         <div class="input-group">
-            <p>個人情報についてお伺いいたします。<br>あなたの会社名ならびにお名前をご記入ください<br>なお、JBRに新規で会社を登録する場合には作業される方全員の受講をお願いいたします。</p>
+            <p>個人情報についてお伺いいたします。<br>あなたに割り当てられたスタッフID、会社名ならびにお名前をご記入ください。</p>
             
             <div style="margin-top: 15px;">
                 <label for="companyName">会社名<span class="required-tag">*</span></label>
-                <input type="text" id="companyName" placeholder="回答を入力" required>
+                <input type="text" id="companyName" placeholder="会社名を入力" required>
+            </div>
+
+            <!-- ⭕️ 17問版にもスタッフID（受験者コード）を追加！ -->
+            <div style="margin-top: 15px;">
+                <label for="staffId">スタッフID（受験者コード）<span class="required-tag">*</span></label>
+                <p>事前配布された半角英数字のスタッフIDを入力してください。</p>
+                <input type="text" id="staffId" placeholder="例: JBR-001" style="text-transform: uppercase;" required>
             </div>
             
             <div style="margin-top: 15px;">
                 <label for="userName">氏名<span class="required-tag">*</span></label>
                 <p>姓と名の間に全角スペースを入れてください。</p>
-                <input type="text" id="userName" placeholder="回答を入力" required>
+                <input type="text" id="userName" placeholder="名前を入力" required>
             </div>
         </div>
 
@@ -112,7 +126,7 @@
             </div>
         </div>
 
-        <button type="button" class="btn-action" onclick="startQuiz()">テストを開始する</button>
+        <button type="button" class="btn-action" id="startBtn" onclick="checkAuthAndStart()">確認してテストを開始する</button>
     </div>
 
     <!-- 📝 画面2：クイズ本編 -->
@@ -127,7 +141,7 @@
 
     <!-- 📊 画面3：管理者ダッシュボード -->
     <div id="adminDashboard" class="admin-dashboard">
-        <h2>📊 JBR理解度テスト 管理者ダッシュボード</h2>
+        <h2>📊 JBR理解度テスト 管理者ダッシュボード（17問作業編）</h2>
         <div class="tab-menu">
             <button class="tab-btn active" onclick="switchTab('tabOverall')">📊 全体分析</button>
             <button class="tab-btn" onclick="switchTab('tabIndividual')">👤 受講者一覧・傾向分析</button>
@@ -154,13 +168,14 @@
                         <thead>
                             <tr id="tableHeaderRow">
                                 <th>日時</th>
+                                <th>スタッフID</th>
                                 <th>会社名</th>
                                 <th>氏名</th>
                                 <th>得点</th>
                             </tr>
                         </thead>
                         <tbody id="logTableBody">
-                            <tr><td colspan="4" class="text-center">ログを読み込んでいます...</td></tr>
+                            <tr><td colspan="5" class="text-center">ログを読み込んでいます...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -174,12 +189,12 @@
     let allMasterQuestions = []; 
     let currentQuizQuestions = []; 
     
-    // 💡 設定
+    // 💡 17問版の設定
     const ADMIN_PASSWORD = "jbr2453"; 
-    const REPO_PATH = "jbr-yukinomura/company-test-rules";
+    const REPO_PATH = "jbr-yukinomura/company-test-rules"; 
 
-    // 🔒 トークンの貼り付け
-    const TOKEN_PART1 = "ghp_seAvsPGZIxQxaLz6Hc"; 
+    // 🔒 トークン
+    const TOKEN_PART1 = "ghp_seAvsPGZIxQxaLz6Hc";
     const TOKEN_PART2 = "Qgew3o1I3BH93kB9kk";    
 
     fetch('./questions.json?t=' + new Date().getTime())
@@ -200,6 +215,7 @@
         const shuffledPool = shuffleArray([...allMasterQuestions]);
         const selectedList = [];
         const usedCategories = new Set();
+
         for (let i = 0; i < shuffledPool.length; i++) {
             const q = shuffledPool[i];
             const cat = q.category || "未分類";
@@ -207,19 +223,76 @@
                 selectedList.push(q);
                 usedCategories.add(cat); 
             }
-            if (selectedList.length === 17) break;    //出題数
+            if (selectedList.length === 17) break; // ⭕️ 17問用
+        }
+
+        if (selectedList.length < 17) {
+            for (let j = 0; j < shuffledPool.length; j++) {
+                const remainingQ = shuffledPool[j];
+                if (!selectedList.some(item => item.id === remainingQ.id)) {
+                    selectedList.push(remainingQ);
+                }
+                if (selectedList.length === 17) break;
+            }
         }
         currentQuizQuestions = shuffleArray(selectedList);
     }
 
-    function startQuiz() {
+    // 🎯 ⭕️ 【新機能】受験制限・重複チェック
+    function checkAuthAndStart() {
         const company = document.getElementById('companyName').value.trim();
+        const staffId = document.getElementById('staffId').value.trim().toUpperCase();
         const name = document.getElementById('userName').value.trim();
         const agree = document.getElementById('privacyAgree').value;
-        if (!company || !name || !agree) {
+
+        if (!company || !staffId || !name || !agree) {
             alert('必須項目(*)をすべて入力し、個人情報の取り扱いに「同意する」を選択してください。');
             return;
         }
+
+        const startBtn = document.getElementById('startBtn');
+        startBtn.innerText = "受験履歴を確認中...";
+        startBtn.disabled = true;
+
+        const secureToken = TOKEN_PART1.trim() + TOKEN_PART2.trim();
+        
+        fetch(`https://api.github.com/repos/${REPO_PATH}/issues?state=all&per_page=100`, {
+            headers: { 'Authorization': `Bearer ${secureToken}` }
+        })
+        .then(res => res.json())
+        .then(issues => {
+            const logs = issues
+                .filter(i => i.title.startsWith('LOG:'))
+                .map(i => { try { return JSON.parse(i.body); } catch(e) { return null; } })
+                .filter(l => l !== null && l.staffId === staffId);
+
+            // ① 合格（17/17）がすでに存在するかチェック
+            const hasPassed = logs.some(l => l.score === "17/17"); // ⭕️ 17点満点合格チェック
+            if (hasPassed) {
+                alert(`【受験エラー】\nスタッフID: ${staffId} の方は、すでに17点満点で「合格」しています。再受験の必要はありません。`);
+                startBtn.innerText = "確認してテストを開始する";
+                startBtn.disabled = false;
+                return;
+            }
+
+            // ② 受験回数の制限（最大3回まで）
+            const maxAttempts = 3;
+            if (logs.length >= maxAttempts) {
+                alert(`【受験エラー】\nスタッフID: ${staffId} の方は、すでに${logs.length}回受験しているため、これ以上受験できません。\n(上限は最大${maxAttempts}回です。担当者へお問い合わせください)`);
+                startBtn.innerText = "確認してテストを開始する";
+                startBtn.disabled = false;
+                return;
+            }
+
+            startQuiz();
+        })
+        .catch(err => {
+            console.error("受験確認エラー:", err);
+            startQuiz();
+        });
+    }
+
+    function startQuiz() {
         generateQuizSet();
         document.getElementById('startScreen').style.display = 'none';
         document.getElementById('quizScreen').style.display = 'block';
@@ -259,14 +332,17 @@
         let score = 0;
         document.getElementById('mainTitle').innerText = '理解度テスト 結果・解説';
         document.getElementById('submitBtn').style.display = 'none';
-        const resultMapping = {};
+        
+        const finalResultsArray = [];
         currentQuizQuestions.forEach((q, index) => {
             const quizBox = document.getElementById(`box_${index}`);
             const selected = document.querySelector(`input[name="question_${index}"]:checked`);
             const userAnswer = selected ? selected.value : "未回答";
             const isCorrect = (userAnswer === q.correctAnswer);
             if (isCorrect) score++;
-            resultMapping[q.id] = isCorrect ? '〇' : '×';
+            
+            finalResultsArray.push(`${q.id}:${isCorrect ? '〇' : '×'}`);
+            
             quizBox.className = `quiz-box ${isCorrect ? 'correct' : 'incorrect'}`;
             const resultDiv = document.createElement('div');
             resultDiv.className = 'result-detail-box';
@@ -280,14 +356,9 @@
             quizBox.appendChild(resultDiv);
         });
 
-        const finalResultsArray = [];
-        for (let i = 1; i <= 54; i++) {
-            const key = "Q" + i;
-            finalResultsArray.push(`${key}:${resultMapping[key] || '-'}`);
-        }
-
         const logPayload = {
             timestamp: new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+            staffId: document.getElementById('staffId').value.trim().toUpperCase(), 
             company: document.getElementById('companyName').value.trim(),
             name: document.getElementById('userName').value.trim(),
             score: `${score}/${currentQuizQuestions.length}`,
@@ -303,7 +374,7 @@
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                title: `LOG: ${logPayload.company} - ${logPayload.name}`,
+                title: `LOG: ${logPayload.staffId} - ${logPayload.name}`, 
                 body: JSON.stringify(logPayload)
             })
         }).catch(err => console.error('ログ送信エラー:', err));
@@ -361,17 +432,25 @@
         categories.sort();
 
         const headerRow = document.getElementById('tableHeaderRow');
-        headerRow.innerHTML = '<th>日時</th><th>会社名</th><th>氏名</th><th>得点</th>';
+        headerRow.innerHTML = '<th>日時</th><th>スタッフID</th><th>会社名</th><th>氏名</th><th>得点</th>'; 
+        
         categories.forEach(cat => {
             const th = document.createElement('th');
             th.innerText = cat;
             headerRow.appendChild(th);
         });
+        
+        for (let m = 1; m <= 17; m++) { // ⭕️ 17問用
+            const thQ = document.createElement('th');
+            thQ.innerText = `Q${m}`; 
+            thQ.className = 'th-q';
+            headerRow.appendChild(thQ);
+        }
 
         const tbody = document.getElementById('logTableBody');
         tbody.innerHTML = '';
         if(logs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="${4 + categories.length}">回答ログはありません。</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${5 + categories.length + 17}">回答ログはありません。</td></tr>`;
             return;
         }
 
@@ -380,14 +459,17 @@
         allMasterQuestions.forEach(q => { questionWrongMap[q.id] = { title: q.title, count: 0 }; });
 
         logs.forEach(log => {
-            const rowDataMap = {};
+            const rowCatCounter = {};
+            categories.forEach(cat => { rowCatCounter[cat] = { correct: 0, total: 0 }; });
+
             const pairs = log.results.split(',');
-            
+            const qCellList = []; 
+
             pairs.forEach(pair => {
                 const parts = pair.split(':');
                 if(parts.length !== 2) return;
-                const qIdStr = parts[0];
-                const status = parts[1]; 
+                const qIdStr = parts[0].trim();
+                const status = parts[1].trim(); 
                 
                 if (status === '-') return;
                 const isCorrect = (status === '〇');
@@ -395,7 +477,13 @@
                 const targetQ = allMasterQuestions.find(m => String(m.id) === qIdStr);
                 if(targetQ) {
                     const displayCategory = targetQ.category || '未分類';
-                    rowDataMap[displayCategory] = `${qIdStr}:${status}`;
+                    
+                    if (rowCatCounter[displayCategory]) {
+                        rowCatCounter[displayCategory].total++;
+                        if (isCorrect) rowCatCounter[displayCategory].correct++;
+                    }
+
+                    qCellList.push({ fullText: `${qIdStr}:${status}`, isCorrect: isCorrect });
 
                     if (!categoryStats[displayCategory]) categoryStats[displayCategory] = { correct: 0, total: 0 };
                     categoryStats[displayCategory].total++;
@@ -408,20 +496,33 @@
             });
 
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${log.timestamp}</td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td>`;
+            tr.innerHTML = `<td>${log.timestamp}</td><td><strong>${log.staffId || '-'}</strong></td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td>`;
             
             categories.forEach(cat => {
                 const td = document.createElement('td');
-                if (rowDataMap[cat]) {
-                    td.innerText = rowDataMap[cat]; 
-                    if (rowDataMap[cat].includes('〇')) td.className = 'log-ok';
-                    if (rowDataMap[cat].includes('×')) td.className = 'log-ng';
+                const stat = rowCatCounter[cat];
+                if (stat && stat.total > 0) {
+                    td.innerText = `${stat.correct} / ${stat.total}`;
+                    if (stat.correct === stat.total) td.className = 'score-perfect';
+                    else if (stat.correct === 0) td.className = 'score-warn';
                 } else {
-                    td.innerText = '-';
+                    td.innerText = '0 / 0';
                     td.style.color = '#ccc';
                 }
                 tr.appendChild(td);
             });
+
+            for (let k = 0; k < 17; k++) { // ⭕️ 17問用
+                const tdQ = document.createElement('td');
+                if (qCellList[k]) {
+                    tdQ.innerHTML = `<span class="q-status ${qCellList[k].isCorrect ? 'status-ok' : 'status-ng'}">${qCellList[k].fullText}</span>`;
+                    tdQ.className = qCellList[k].isCorrect ? 'cell-ok' : 'cell-ng';
+                } else {
+                    tdQ.innerText = '-';
+                    tdQ.style.color = '#ccc';
+                }
+                tr.appendChild(tdQ);
+            }
             tbody.appendChild(tr);
         });
 
