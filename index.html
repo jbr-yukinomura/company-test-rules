@@ -402,14 +402,28 @@
         document.getElementById('quizScreen').style.display = 'none';
         document.getElementById('adminDashboard').style.display = 'block';
         
-        fetch(`https://api.github.com/repos/${REPO_PATH}/issues?state=all&per_page=100`)
+        // ⭕️ 認証トークンを付与して安全に取得
+        const secureToken = TOKEN_PART1.trim() + TOKEN_PART2.trim();
+
+        fetch(`https://api.github.com/repos/${REPO_PATH}/issues?state=all&per_page=100`, {
+            headers: { 'Authorization': `Bearer ${secureToken}` }
+        })
             .then(res => res.json())
             .then(issues => {
+                if (!Array.isArray(issues)) {
+                    console.error("APIエラー:", issues);
+                    document.getElementById('logTableBody').innerHTML = `<tr><td colspan="30" class="text-center" style="color:red;">ログデータの取得に失敗しました。認証トークンまたはリポジトリ設定をご確認ください。</td></tr>`;
+                    return;
+                }
                 const logs = issues
-                    .filter(i => i.title.startsWith('LOG:'))
+                    .filter(i => i.title && i.title.startsWith('LOG:'))
                     .map(i => { try { return JSON.parse(i.body); } catch(e) { return null; } })
                     .filter(l => l !== null);
                 renderDashboard(logs);
+            })
+            .catch(err => {
+                console.error("ログ取得エラー:", err);
+                document.getElementById('logTableBody').innerHTML = `<tr><td colspan="30" class="text-center" style="color:red;">通信エラーが発生しました。</td></tr>`;
             });
     }
 
@@ -423,127 +437,7 @@
     let categoryChartInstance = null;
     let weakQuestionsChartInstance = null;
 
-    function renderDashboard(logs) {
-        const categories = [];
-        allMasterQuestions.forEach(q => {
-            const cat = q.category || '未分類';
-            if (!categories.includes(cat)) categories.push(cat);
-        });
-        categories.sort();
-
-        const headerRow = document.getElementById('tableHeaderRow');
-        headerRow.innerHTML = '<th>日時</th><th>スタッフID</th><th>会社名</th><th>氏名</th><th>得点</th>'; 
-        
-        categories.forEach(cat => {
-            const th = document.createElement('th');
-            th.innerText = cat;
-            headerRow.appendChild(th);
-        });
-        
-        for (let m = 1; m <= TOTAL_QUESTION_COUNT; m++) { // ⭕️ 20問用
-            const thQ = document.createElement('th');
-            thQ.innerText = `Q${m}`; 
-            thQ.className = 'th-q';
-            headerRow.appendChild(thQ);
-        }
-
-        const tbody = document.getElementById('logTableBody');
-        tbody.innerHTML = '';
-        if(logs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="${5 + categories.length + TOTAL_QUESTION_COUNT}">回答ログはありません。</td></tr>`;
-            return;
-        }
-
-        const categoryStats = {};
-        const questionWrongMap = {}; 
-        allMasterQuestions.forEach(q => { questionWrongMap[q.id] = { title: q.title, count: 0 }; });
-
-        logs.forEach(log => {
-            const rowCatCounter = {};
-            categories.forEach(cat => { rowCatCounter[cat] = { correct: 0, total: 0 }; });
-
-            const pairs = log.results.split(',');
-            const qCellList = []; 
-
-            pairs.forEach(pair => {
-                const parts = pair.split(':');
-                if(parts.length !== 2) return;
-                const qIdStr = parts[0].trim();
-                const status = parts[1].trim(); 
-                
-                if (status === '-') return;
-                const isCorrect = (status === '〇');
-
-                const targetQ = allMasterQuestions.find(m => String(m.id) === qIdStr);
-                if(targetQ) {
-                    const displayCategory = targetQ.category || '未分類';
-                    
-                    if (rowCatCounter[displayCategory]) {
-                        rowCatCounter[displayCategory].total++;
-                        if (isCorrect) rowCatCounter[displayCategory].correct++;
-                    }
-
-                    qCellList.push({ fullText: `${qIdStr}:${status}`, isCorrect: isCorrect });
-
-                    if (!categoryStats[displayCategory]) categoryStats[displayCategory] = { correct: 0, total: 0 };
-                    categoryStats[displayCategory].total++;
-                    if (isCorrect) categoryStats[displayCategory].correct++;
-                }
-
-                if (!isCorrect && questionWrongMap[qIdStr]) {
-                    questionWrongMap[qIdStr].count++;
-                }
-            });
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${log.timestamp}</td><td><strong>${log.staffId || '-'}</strong></td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td>`;
-            
-            categories.forEach(cat => {
-                const td = document.createElement('td');
-                const stat = rowCatCounter[cat];
-                if (stat && stat.total > 0) {
-                    td.innerText = `${stat.correct} / ${stat.total}`;
-                    if (stat.correct === stat.total) td.className = 'score-perfect';
-                    else if (stat.correct === 0) td.className = 'score-warn';
-                } else {
-                    td.innerText = '0 / 0';
-                    td.style.color = '#ccc';
-                }
-                tr.appendChild(td);
-            });
-
-            for (let k = 0; k < TOTAL_QUESTION_COUNT; k++) { // ⭕️ 20問用
-                const tdQ = document.createElement('td');
-                if (qCellList[k]) {
-                    tdQ.innerHTML = `<span class="q-status ${qCellList[k].isCorrect ? 'status-ok' : 'status-ng'}">${qCellList[k].fullText}</span>`;
-                    tdQ.className = qCellList[k].isCorrect ? 'cell-ok' : 'cell-ng';
-                } else {
-                    tdQ.innerText = '-';
-                    tdQ.style.color = '#ccc';
-                }
-                tr.appendChild(tdQ);
-            }
-            tbody.appendChild(tr);
-        });
-
-        if (categoryChartInstance) categoryChartInstance.destroy();
-        if (weakQuestionsChartInstance) weakQuestionsChartInstance.destroy();
-        const catLabels = Object.keys(categoryStats);
-        const catData = catLabels.map(l => Math.round((categoryStats[l].correct / categoryStats[l].total) * 100));
-        categoryChartInstance = new Chart(document.getElementById('categoryChart'), {
-            type: 'bar',
-            data: { labels: catLabels, datasets: [{ label: '正答率 (%)', data: catData, backgroundColor: '#3498db' }] },
-            options: { scales: { y: { min: 0, max: 100 } } }
-        });
-        const sortedQuestions = Object.values(questionWrongMap).sort((a,b) => b.count - a.count).slice(0, 5);
-        weakQuestionsChartInstance = new Chart(document.getElementById('weakQuestionsChart'), {
-            type: 'bar',
-            data: { 
-                labels: sortedQuestions.map(q => q.title.substring(0, 12) + '...'), 
-                datasets: [{ label: '誤答数', data: sortedQuestions.map(q => q.count), backgroundColor: '#e74c3c' }] 
-            }
-        });
-    }
+    renderDashboard
 </script>
 </body>
 </html>
