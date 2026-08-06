@@ -190,12 +190,14 @@
     let currentQuizQuestions = []; 
     
         // :bulb: 20問版の設定
+    const TOTAL_QUESTION_COUNT = 20;
     const ADMIN_PASSWORD = "jbr2453";
     const REPO_PATH = "jbr-yukinomura/company-test-rules";
 
     // :lock: トークン
     const TOKEN_PART1 = "ghp_seAvsPGZIxQxaLz6Hc";
     const TOKEN_PART2 = "Qgew3o1I3BH93kB9kk";
+
 
     fetch('./questions.json?t=' + new Date().getTime())
         .then(response => response.json())
@@ -437,7 +439,133 @@
     let categoryChartInstance = null;
     let weakQuestionsChartInstance = null;
 
-    renderDashboard
+    function renderDashboard(logs) {
+        const categories = [];
+        allMasterQuestions.forEach(q => {
+            const cat = q.category || '未分類';
+            if (!categories.includes(cat)) categories.push(cat);
+        });
+        categories.sort();
+
+        const headerRow = document.getElementById('tableHeaderRow');
+        headerRow.innerHTML = '<th>日時</th><th>スタッフID</th><th>会社名</th><th>氏名</th><th>得点</th>'; 
+        
+        categories.forEach(cat => {
+            const th = document.createElement('th');
+            th.innerText = cat;
+            headerRow.appendChild(th);
+        });
+        
+        for (let m = 1; m <= TOTAL_QUESTION_COUNT; m++) {
+            const thQ = document.createElement('th');
+            thQ.innerText = `Q${m}`; 
+            thQ.className = 'th-q';
+            headerRow.appendChild(thQ);
+        }
+
+        const tbody = document.getElementById('logTableBody');
+        tbody.innerHTML = '';
+        if(logs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${5 + categories.length + TOTAL_QUESTION_COUNT}">回答ログはありません。</td></tr>`;
+            return;
+        }
+
+        const categoryStats = {};
+        const questionWrongMap = {}; 
+        allMasterQuestions.forEach(q => { questionWrongMap[q.id] = { title: q.title, count: 0 }; });
+
+        logs.forEach(log => {
+            const rowCatCounter = {};
+            categories.forEach(cat => { rowCatCounter[cat] = { correct: 0, total: 0 }; });
+
+            const pairs = log.results.split(',');
+            const qCellList = []; 
+
+            pairs.forEach(pair => {
+                const parts = pair.split(':');
+                if(parts.length !== 2) return;
+                const qIdStr = parts[0].trim();
+                const status = parts[1].trim(); 
+                
+                if (status === '-') return;
+                const isCorrect = (status === '〇');
+
+                const targetQ = allMasterQuestions.find(m => String(m.id) === qIdStr);
+                if(targetQ) {
+                    const displayCategory = targetQ.category || '未分類';
+                    
+                    if (rowCatCounter[displayCategory]) {
+                        rowCatCounter[displayCategory].total++;
+                        if (isCorrect) rowCatCounter[displayCategory].correct++;
+                    }
+
+                    qCellList.push({ fullText: `${qIdStr}:${status}`, isCorrect: isCorrect });
+
+                    if (!categoryStats[displayCategory]) categoryStats[displayCategory] = { correct: 0, total: 0 };
+                    categoryStats[displayCategory].total++;
+                    if (isCorrect) categoryStats[displayCategory].correct++;
+                }
+
+                if (!isCorrect && questionWrongMap[qIdStr]) {
+                    questionWrongMap[qIdStr].count++;
+                }
+            });
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${log.timestamp}</td><td><strong>${log.staffId || '-'}</strong></td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td>`;
+            
+            categories.forEach(cat => {
+                const td = document.createElement('td');
+                const stat = rowCatCounter[cat];
+                if (stat && stat.total > 0) {
+                    td.innerText = `${stat.correct} / ${stat.total}`;
+                    
+                    if (stat.correct === stat.total) {
+                        td.className = 'score-perfect';
+                    } else {
+                        td.className = 'score-warn';
+                    }
+                } else {
+                    td.innerText = '0 / 0';
+                    td.style.color = '#ccc';
+                }
+                tr.appendChild(td);
+            });
+
+            for (let k = 0; k < TOTAL_QUESTION_COUNT; k++) {
+                const tdQ = document.createElement('td');
+                if (qCellList[k]) {
+                    tdQ.innerHTML = `<span class="q-status ${qCellList[k].isCorrect ? 'status-ok' : 'status-ng'}">${qCellList[k].fullText}</span>`;
+                    tdQ.className = qCellList[k].isCorrect ? 'cell-ok' : 'cell-ng';
+                } else {
+                    tdQ.innerText = '-';
+                    tdQ.style.color = '#ccc';
+                }
+                tr.appendChild(tdQ);
+            }
+            tbody.appendChild(tr);
+        });
+
+        if (categoryChartInstance) categoryChartInstance.destroy();
+        if (weakQuestionsChartInstance) weakQuestionsChartInstance.destroy();
+        const catLabels = Object.keys(categoryStats);
+        const catData = catLabels.map(l => Math.round((categoryStats[l].correct / categoryStats[l].total) * 100));
+        categoryChartInstance = new Chart(document.getElementById('categoryChart'), {
+            type: 'bar',
+            data: { labels: catLabels, datasets: [{ label: '正答率 (%)', data: catData, backgroundColor: '#3498db' }] },
+            options: { scales: { y: { min: 0, max: 100 } } }
+        });
+        const sortedQuestions = Object.values(questionWrongMap).sort((a,b) => b.count - a.count).slice(0, 5);
+        weakQuestionsChartInstance = new Chart(document.getElementById('weakQuestionsChart'), {
+            type: 'bar',
+            data: { 
+                labels: sortedQuestions.map(q => q.title.substring(0, 12) + '...'), 
+                datasets: [{ label: '誤答数', data: sortedQuestions.map(q => q.count), backgroundColor: '#e74c3c' }] 
+            }
+        });
+    }
+</script>
+</body>
 </script>
 </body>
 </html>
