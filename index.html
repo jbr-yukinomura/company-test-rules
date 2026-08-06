@@ -75,9 +75,9 @@
         <div class="info-section">
             <p><strong>【受験者への案内】</strong></p>
             <p>１．本テストは、JBRのビジネスを円滑に進めていただく上で、大変重要なルールや知識を網羅しております。あらかじめ各種マニュアルをご一読いただいた上で、ご受験をお願いいたします。</p>
-            <p>２．本テストで17点（満点）を獲得いただくことが、皆様とJBRが信頼できるビジネスパートナーとして歩みを共にするための基準となっております。皆様のご理解とご協力を心よりお願い申し上げます。<br>
-            なお、17点（満点）を獲得いただくまで、何度でも受験が可能です。（※ただし最大3回まで）</p>
-            <p>※問題数は全17問、<u>所要時間は概ね10〜12分程度</u>の内容となっております。</p>
+            <p>２．本テストで20点（満点）を獲得いただくことが、皆様とJBRが信頼できるビジネスパートナーとして歩みを共にするための基準となっております。皆様のご理解とご協力を心よりお願い申し上げます。<br>
+            なお、20点（満点）を獲得いただくまで、何度でも受験が可能です。（※ただし最大3回まで）</p>
+            <p>※問題数は全20問、<u>所要時間は概ね12〜15分程度</u>の内容となっております。</p>
             <p>（※ご注意）<br>
             本テストは、再受験のたびに問題や選択肢がランダムに入れ替わります。</p>
         </div>
@@ -90,7 +90,7 @@
                 <input type="text" id="companyName" placeholder="会社名を入力" required>
             </div>
 
-            <!-- ⭕️ 17問版にもスタッフID（受験者コード）を追加！ -->
+            <!-- ⭕️ 20問版：スタッフID（受験者コード） -->
             <div style="margin-top: 15px;">
                 <label for="staffId">スタッフID（受験者コード）<span class="required-tag">*</span></label>
                 <p>事前配布された半角英数字のスタッフIDを入力してください。</p>
@@ -141,7 +141,7 @@
 
     <!-- 📊 画面3：管理者ダッシュボード -->
     <div id="adminDashboard" class="admin-dashboard">
-        <h2>📊 JBR理解度テスト 管理者ダッシュボード（17問作業編）</h2>
+        <h2>📊 JBR理解度テスト 管理者ダッシュボード（20問作業編）</h2>
         <div class="tab-menu">
             <button class="tab-btn active" onclick="switchTab('tabOverall')">📊 全体分析</button>
             <button class="tab-btn" onclick="switchTab('tabIndividual')">👤 受講者一覧・傾向分析</button>
@@ -189,13 +189,13 @@
     let allMasterQuestions = []; 
     let currentQuizQuestions = []; 
     
-    // 💡 17問版の設定
-    const ADMIN_PASSWORD = "jbr2453"; 
-    const REPO_PATH = "jbr-yukinomura/company-test-rules"; 
+        // :bulb: 20問版の設定
+    const ADMIN_PASSWORD = "jbr2453";
+    const REPO_PATH = "jbr-yukinomura/company-test-rules";
 
-    // 🔒 トークン
+    // :lock: トークン
     const TOKEN_PART1 = "ghp_seAvsPGZIxQxaLz6Hc";
-    const TOKEN_PART2 = "Qgew3o1I3BH93kB9kk";    
+    const TOKEN_PART2 = "Qgew3o1I3BH93kB9kk";
 
     fetch('./questions.json?t=' + new Date().getTime())
         .then(response => response.json())
@@ -223,22 +223,22 @@
                 selectedList.push(q);
                 usedCategories.add(cat); 
             }
-            if (selectedList.length === 17) break; // ⭕️ 17問用
+            if (selectedList.length === TOTAL_QUESTION_COUNT) break; // ⭕️ 20問用
         }
 
-        if (selectedList.length < 17) {
+        if (selectedList.length < TOTAL_QUESTION_COUNT) {
             for (let j = 0; j < shuffledPool.length; j++) {
                 const remainingQ = shuffledPool[j];
                 if (!selectedList.some(item => item.id === remainingQ.id)) {
                     selectedList.push(remainingQ);
                 }
-                if (selectedList.length === 17) break;
+                if (selectedList.length === TOTAL_QUESTION_COUNT) break; // ⭕️ 20問用
             }
         }
         currentQuizQuestions = shuffleArray(selectedList);
     }
 
-    // 🎯 ⭕️ 【新機能】受験制限・重複チェック
+    // 🎯 重複チェック・受講制限
     function checkAuthAndStart() {
         const company = document.getElementById('companyName').value.trim();
         const staffId = document.getElementById('staffId').value.trim().toUpperCase();
@@ -266,10 +266,10 @@
                 .map(i => { try { return JSON.parse(i.body); } catch(e) { return null; } })
                 .filter(l => l !== null && l.staffId === staffId);
 
-            // ① 合格（17/17）がすでに存在するかチェック
-            const hasPassed = logs.some(l => l.score === "17/17"); // ⭕️ 17点満点合格チェック
+            // ① 合格（20/20）がすでに存在するかチェック
+            const hasPassed = logs.some(l => l.score === `${TOTAL_QUESTION_COUNT}/${TOTAL_QUESTION_COUNT}`); // ⭕️ 20点満点合格チェック
             if (hasPassed) {
-                alert(`【受験エラー】\nスタッフID: ${staffId} の方は、すでに17点満点で「合格」しています。再受験の必要はありません。`);
+                alert(`【受験エラー】\nスタッフID: ${staffId} の方は、すでに20点満点で「合格」しています。再受験の必要はありません。`);
                 startBtn.innerText = "確認してテストを開始する";
                 startBtn.disabled = false;
                 return;
@@ -440,7 +440,7 @@
             headerRow.appendChild(th);
         });
         
-        for (let m = 1; m <= 17; m++) { // ⭕️ 17問用
+        for (let m = 1; m <= TOTAL_QUESTION_COUNT; m++) { // ⭕️ 20問用
             const thQ = document.createElement('th');
             thQ.innerText = `Q${m}`; 
             thQ.className = 'th-q';
@@ -450,7 +450,7 @@
         const tbody = document.getElementById('logTableBody');
         tbody.innerHTML = '';
         if(logs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="${5 + categories.length + 17}">回答ログはありません。</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="${5 + categories.length + TOTAL_QUESTION_COUNT}">回答ログはありません。</td></tr>`;
             return;
         }
 
@@ -512,7 +512,7 @@
                 tr.appendChild(td);
             });
 
-            for (let k = 0; k < 17; k++) { // ⭕️ 17問用
+            for (let k = 0; k < TOTAL_QUESTION_COUNT; k++) { // ⭕️ 20問用
                 const tdQ = document.createElement('td');
                 if (qCellList[k]) {
                     tdQ.innerHTML = `<span class="q-status ${qCellList[k].isCorrect ? 'status-ok' : 'status-ng'}">${qCellList[k].fullText}</span>`;
