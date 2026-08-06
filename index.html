@@ -198,11 +198,45 @@
     const TOKEN_PART1 = "ghp_seAvsPGZIxQxaLz6Hc";
     const TOKEN_PART2 = "Qgew3o1I3BH93kB9kk";
 
-
-    fetch('./questions.json?t=' + new Date().getTime())
+    const questionsPromise = fetch('./questions.json?t=' + new Date().getTime())
         .then(response => response.json())
-        .then(questions => { allMasterQuestions = questions; })
-        .catch(err => { console.error('問題の読み込みに失敗しました。', err); });
+        .then(questions => {
+            if (!Array.isArray(questions)) throw new Error('questions.jsonの形式が正しくありません');
+            allMasterQuestions = questions;
+            return questions;
+        })
+        .catch(err => {
+            console.error('問題の読み込みに失敗しました。', err);
+            throw err;
+        });
+
+    function getGitHubHeaders(extraHeaders = {}) {
+        const secureToken = TOKEN_PART1.trim() + TOKEN_PART2.trim();
+        const headers = { 'Accept': 'application/vnd.github+json', ...extraHeaders };
+        if (secureToken) headers['Authorization'] = `Bearer ${secureToken}`;
+        return headers;
+    }
+
+    async function fetchGitHubIssues() {
+        const allIssues = [];
+        let page = 1;
+        while (true) {
+            const response = await fetch(
+                `https://api.github.com/repos/${REPO_PATH}/issues?state=all&per_page=100&page=${page}`,
+                { headers: getGitHubHeaders() }
+            );
+            if (!response.ok) {
+                const detail = await response.text();
+                throw new Error(`GitHub API ${response.status}: ${detail}`);
+            }
+            const issues = await response.json();
+            if (!Array.isArray(issues)) throw new Error('GitHub APIの応答形式が正しくありません');
+            allIssues.push(...issues);
+            if (issues.length < 100) break;
+            page++;
+        }
+        return allIssues;
+    }
 
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
@@ -256,15 +290,10 @@
         startBtn.innerText = "受験履歴を確認中...";
         startBtn.disabled = true;
 
-        const secureToken = TOKEN_PART1.trim() + TOKEN_PART2.trim();
-        
-        fetch(`https://api.github.com/repos/${REPO_PATH}/issues?state=all&per_page=100`, {
-            headers: { 'Authorization': `Bearer ${secureToken}` }
-        })
-        .then(res => res.json())
+        fetchGitHubIssues()
         .then(issues => {
             const logs = issues
-                .filter(i => i.title.startsWith('LOG:'))
+                .filter(i => i.title && i.title.startsWith('LOG:'))
                 .map(i => { try { return JSON.parse(i.body); } catch(e) { return null; } })
                 .filter(l => l !== null && l.staffId === staffId);
 
@@ -367,19 +396,24 @@
             results: finalResultsArray.join(',') 
         };
 
-        const secureToken = TOKEN_PART1.trim() + TOKEN_PART2.trim();
         fetch(`https://api.github.com/repos/${REPO_PATH}/issues`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${secureToken}`,
-                'Accept': 'application/vnd.github.v3+json',
-                'Content-Type': 'application/json'
-            },
+            headers: getGitHubHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
                 title: `LOG: ${logPayload.staffId} - ${logPayload.name}`, 
                 body: JSON.stringify(logPayload)
             })
-        }).catch(err => console.error('ログ送信エラー:', err));
+        })
+        .then(async response => {
+            if (!response.ok) {
+                const detail = await response.text();
+                throw new Error(`GitHub API ${response.status}: ${detail}`);
+            }
+        })
+        .catch(err => {
+            console.error('ログ送信エラー:', err);
+            alert('採点は完了しましたが、回答ログを保存できませんでした。管理者へご連絡ください。');
+        });
 
         const header = document.getElementById('quizResultHeader');
         header.innerHTML = `<div class="result-header"><h2>採点完了</h2><div class="score">${currentQuizQuestions.length}問中 ${score}問 正解！</div></div>`;
@@ -404,19 +438,8 @@
         document.getElementById('quizScreen').style.display = 'none';
         document.getElementById('adminDashboard').style.display = 'block';
         
-        // ⭕️ 認証トークンを付与して安全に取得
-        const secureToken = TOKEN_PART1.trim() + TOKEN_PART2.trim();
-
-        fetch(`https://api.github.com/repos/${REPO_PATH}/issues?state=all&per_page=100`, {
-            headers: { 'Authorization': `Bearer ${secureToken}` }
-        })
-            .then(res => res.json())
-            .then(issues => {
-                if (!Array.isArray(issues)) {
-                    console.error("APIエラー:", issues);
-                    document.getElementById('logTableBody').innerHTML = `<tr><td colspan="30" class="text-center" style="color:red;">ログデータの取得に失敗しました。認証トークンまたはリポジトリ設定をご確認ください。</td></tr>`;
-                    return;
-                }
+        Promise.all([fetchGitHubIssues(), questionsPromise])
+            .then(([issues]) => {
                 const logs = issues
                     .filter(i => i.title && i.title.startsWith('LOG:'))
                     .map(i => { try { return JSON.parse(i.body); } catch(e) { return null; } })
@@ -425,7 +448,11 @@
             })
             .catch(err => {
                 console.error("ログ取得エラー:", err);
-                document.getElementById('logTableBody').innerHTML = `<tr><td colspan="30" class="text-center" style="color:red;">通信エラーが発生しました。</td></tr>`;
+                const message = String(err.message || '').includes('questions.json')
+                    ? '問題データの読み込みに失敗しました。questions.jsonをご確認ください。'
+                    : '回答ログの取得に失敗しました。認証トークン、権限、リポジトリ名をご確認ください。';
+                document.getElementById('logTableBody').innerHTML =
+                    `<tr><td colspan="30" class="text-center" style="color:red;">${message}</td></tr>`;
             });
     }
 
@@ -478,7 +505,9 @@
             const rowCatCounter = {};
             categories.forEach(cat => { rowCatCounter[cat] = { correct: 0, total: 0 }; });
 
-            const pairs = log.results.split(',');
+            const pairs = typeof log.results === 'string' && log.results.trim()
+                ? log.results.split(',')
+                : [];
             const qCellList = []; 
 
             pairs.forEach(pair => {
@@ -512,7 +541,7 @@
             });
 
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${log.timestamp}</td><td><strong>${log.staffId || '-'}</strong></td><td>${log.company}</td><td>${log.name}</td><td>${log.score}</td>`;
+            tr.innerHTML = `<td>${log.timestamp || '-'}</td><td><strong>${log.staffId || '-'}</strong></td><td>${log.company || '-'}</td><td>${log.name || '-'}</td><td>${log.score || '-'}</td>`;
             
             categories.forEach(cat => {
                 const td = document.createElement('td');
@@ -564,8 +593,6 @@
             }
         });
     }
-</script>
-</body>
 </script>
 </body>
 </html>
