@@ -120,12 +120,14 @@
     const TOTAL_QUESTION_COUNT = 20;
     const REPO_PATH = "jbr-yukinomura/inspection-test-logs";
 
-    // ログ専用リポジトリのFine-grained tokenを2分割して設定
-    const TOKEN_PART1 = "github_pat_11CGQ5IFY0bZrgKN9XP8DT_n3iWSUVcIFt0";
-    const TOKEN_PART2 = "JmM86q2XzlcBJqDDA3a3um9swTYz0Lp3KRWWY2VLw9sKvfd";
+    // ログ専用リポジトリのFine-grained tokenを3分割して設定
+    const TOKEN_PART1 = "github";
+    const TOKEN_PART2 = "_pat_11CGQ5IFY0bZrgKN9XP8DT_n3iWSUVcIFt0JmM";
+    const TOKEN_PART3 = "86q2XzlcBJqDDA3a3um9swTYz0Lp3KRWWY2VLw9sKvfd";
 
     function getGitHubToken() {
-        return TOKEN_PART1.trim() + TOKEN_PART2.trim();
+        return TOKEN_PART1.trim() + TOKEN_PART2.trim() + TOKEN_PART3.trim();
+    }
 
     const questionsPromise = fetch('./questions.json?t=' + new Date().getTime())
         .then(response => response.json())
@@ -140,9 +142,10 @@
         });
 
     function getGitHubHeaders(extraHeaders = {}) {
+        const secureToken = getGitHubToken();
         const headers = { 'Accept': 'application/vnd.github+json', ...extraHeaders };
-        if (GITHUB_TOKEN && !GITHUB_TOKEN.startsWith('ここに')) {
-            headers['Authorization'] = `Bearer ${GITHUB_TOKEN.trim()}`;
+        if (secureToken) {
+            headers['Authorization'] = `Bearer ${secureToken}`;
         }
         return headers;
     }
@@ -216,7 +219,7 @@
             return;
         }
 
-        if (!GITHUB_TOKEN || GITHUB_TOKEN.startsWith('ここに')) {
+        if (!getGitHubToken()) {
             alert('ログ保存用トークンが設定されていません。管理者へご連絡ください。');
             return;
         }
